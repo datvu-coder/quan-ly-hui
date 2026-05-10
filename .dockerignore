@@ -1,0 +1,8 @@
+node_modules
+dist
+.toolchain
+.DS_Store
+*.log
+.claude
+{docs
+docs

@@ -1,0 +1,455 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sohne:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==================== Base Styles ==================== */
+
+* {
+  @apply transition-colors duration-200;
+  scrollbar-color: #475569 transparent;
+  scrollbar-width: thin;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-gray-50;
+  @apply text-gray-900;
+  @apply font-sans antialiased;
+  overflow-x: hidden;
+}
+
+/* ==================== Typography ==================== */
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-display font-bold tracking-tight;
+}
+
+h1 {
+  @apply text-4xl md:text-5xl;
+}
+
+h2 {
+  @apply text-3xl md:text-4xl;
+}
+
+h3 {
+  @apply text-2xl md:text-3xl;
+}
+
+h4 {
+  @apply text-xl md:text-2xl;
+}
+
+h5 {
+  @apply text-lg md:text-xl;
+}
+
+h6 {
+  @apply text-base md:text-lg;
+}
+
+p {
+  @apply text-gray-600 leading-relaxed;
+}
+
+a {
+  @apply text-amber-400 hover:text-amber-300 transition-colors;
+}
+
+/* ==================== Scrollbar Styles ==================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+  transition: background 200ms;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ==================== Form Elements ==================== */
+
+input,
+textarea,
+select {
+  @apply w-full px-3 py-2;
+  @apply bg-white;
+  @apply border border-gray-300;
+  @apply rounded-lg;
+  @apply text-gray-900 placeholder-gray-400;
+  @apply focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20;
+  @apply transition-all duration-200;
+}
+
+input::placeholder,
+textarea::placeholder {
+  @apply text-slate-500;
+}
+
+button {
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-amber-400/30;
+  @apply transition-all duration-200;
+  @apply cursor-pointer;
+}
+
+button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* ==================== Custom Components ==================== */
+
+/* Glass morphism effect */
+.glass {
+  @apply bg-slate-800/40 backdrop-blur border border-slate-700/50;
+}
+
+.glass-hover {
+  @apply bg-slate-800/40 backdrop-blur border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent;
+}
+
+/* Glow effect */
+.glow-amber {
+  @apply shadow-glow-amber;
+}
+
+.glow-blue {
+  @apply shadow-glow-blue;
+}
+
+.glow-green {
+  @apply shadow-glow-green;
+}
+
+.glow-purple {
+  @apply shadow-glow-purple;
+}
+
+/* Card component */
+.card {
+  @apply bg-slate-800/40 backdrop-blur border border-slate-700/50 rounded-xl p-6;
+}
+
+.card-hover {
+  @apply bg-slate-800/40 backdrop-blur border border-slate-700/50 rounded-xl p-6 hover:bg-slate-800/60 hover:border-slate-600/50 hover:shadow-lg hover:shadow-slate-950/50 transition-all;
+}
+
+/* Button variants */
+.btn {
+  @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 hover:shadow-lg hover:shadow-amber-500/30;
+}
+
+.btn-secondary {
+  @apply bg-slate-800/50 text-slate-100 border border-slate-700/50 hover:bg-slate-800 hover:border-slate-600/50;
+}
+
+.btn-danger {
+  @apply bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/50;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.btn-lg {
+  @apply px-8 py-4 text-lg;
+}
+
+.btn:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Badge component */
+.badge {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-success {
+  @apply bg-green-500/20 text-green-300 border border-green-500/30;
+}
+
+.badge-warning {
+  @apply bg-yellow-500/20 text-yellow-300 border border-yellow-500/30;
+}
+
+.badge-danger {
+  @apply bg-red-500/20 text-red-300 border border-red-500/30;
+}
+
+.badge-info {
+  @apply bg-blue-500/20 text-blue-300 border border-blue-500/30;
+}
+
+/* Alert component */
+.alert {
+  @apply rounded-lg border p-4 flex gap-3;
+}
+
+.alert-success {
+  @apply bg-green-500/10 border-green-500/30 text-green-200;
+}
+
+.alert-warning {
+  @apply bg-yellow-500/10 border-yellow-500/30 text-yellow-200;
+}
+
+.alert-danger {
+  @apply bg-red-500/10 border-red-500/30 text-red-200;
+}
+
+.alert-info {
+  @apply bg-blue-500/10 border-blue-500/30 text-blue-200;
+}
+
+/* Table styles */
+table {
+  @apply w-full;
+}
+
+thead {
+  @apply bg-gray-50;
+}
+
+th {
+  @apply px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200;
+}
+
+td {
+  @apply px-6 py-4 border-b border-gray-100;
+}
+
+tbody tr {
+  @apply hover:bg-gray-50 transition-colors;
+}
+
+/* Modal/Dialog backdrop */
+.modal-backdrop {
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-40;
+}
+
+.modal-content {
+  @apply fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
+  @apply bg-slate-800/40 backdrop-blur border border-slate-700/50 rounded-xl shadow-2xl shadow-slate-950/50;
+  @apply max-w-md w-full mx-4 max-h-screen overflow-y-auto;
+  @apply z-50;
+}
+
+/* Loading skeleton */
+.skeleton {
+  @apply bg-slate-800 rounded animate-pulse;
+}
+
+.skeleton-text {
+  @apply bg-slate-800 rounded animate-pulse h-4 mb-2;
+}
+
+.skeleton-image {
+  @apply bg-slate-800 rounded animate-pulse aspect-video;
+}
+
+/* ==================== Animations ==================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.animate-slide-in-down {
+  animation: slideInDown 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* ==================== Utility Classes ==================== */
+
+/* Background accents */
+.bg-accent-amber {
+  @apply bg-gradient-to-br from-amber-400/10 to-orange-500/5;
+}
+
+.bg-accent-blue {
+  @apply bg-gradient-to-br from-blue-400/10 to-cyan-500/5;
+}
+
+.bg-accent-purple {
+  @apply bg-gradient-to-br from-purple-400/10 to-pink-500/5;
+}
+
+/* Text gradients */
+.text-gradient-amber {
+  @apply bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent;
+}
+
+.text-gradient-blue {
+  @apply bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent;
+}
+
+/* Border gradients */
+.border-gradient-amber {
+  @apply border border-transparent bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-border;
+}
+
+/* ==================== Responsive Utilities ==================== */
+
+@media (max-width: 768px) {
+  .hide-mobile {
+    @apply hidden;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    @apply hidden;
+  }
+}
+
+/* ==================== Dark Mode (default) ==================== */
+
+/* This is the default dark mode, no changes needed */
+/* If you want to add light mode, add in a separate file or use @media (prefers-color-scheme: light) */
+
+/* ==================== Print Styles ==================== */
+
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+
+  button,
+  .no-print {
+    @apply hidden;
+  }
+
+  a {
+    @apply text-blue-600;
+  }
+}
+
+/* ==================== Selection ==================== */
+
+::selection {
+  @apply bg-amber-400/30 text-amber-100;
+}
+
+::-moz-selection {
+  @apply bg-amber-400/30 text-amber-100;
+}
+
+/* ==================== Focus Visible ==================== */
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-amber-400;
+}
+
+/* ==================== Accessibility ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    @apply !transition-none !animate-none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .glass {
+    @apply bg-slate-900 backdrop-blur-none;
+  }
+
+  button {
+    @apply font-bold;
+  }
+}
