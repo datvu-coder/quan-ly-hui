@@ -2,9 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
+import LuckyWheel from '../components/LuckyWheel.jsx';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
 import { currentPeriodNumber, calcSessionNet } from '../lib/period.js';
 
@@ -39,11 +40,16 @@ export default function KeuHuiPage() {
   const [deleteId, setDeleteId] = useState(null);
   const [confirmWinnerId, setConfirmWinnerId] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [wheelMembers, setWheelMembers] = useState([]);
 
   // bid form state inside detail modal
   const [bidMemberId, setBidMemberId] = useState('');
   const [bidRate, setBidRate] = useState('0');
   const [bidRateError, setBidRateError] = useState('');
+
+  // active schedule tab in detail modal
+  const [detailTab, setDetailTab] = useState('session'); // 'session' | 'schedule'
 
   const createForm = useForm({
     resolver: zodResolver(createSchema),
@@ -121,12 +127,44 @@ export default function KeuHuiPage() {
     return [...detailSession.bids].sort((a, b) => b.bidRate - a.bidRate);
   }, [detailSession]);
 
+  // Live hui: bidders tied at the top rate
+  const tiedBidders = useMemo(() => {
+    if (!detailSession || detailGroup?.type !== 'live' || sortedBids.length < 2) return [];
+    const topRate = sortedBids[0].bidRate;
+    return sortedBids.filter((b) => b.bidRate === topRate);
+  }, [detailSession, detailGroup, sortedBids]);
+
+  // Schedule: remaining periods → suggested members (by name order)
+  const scheduleRows = useMemo(() => {
+    if (!detailGroup || !detailSession) return [];
+    const closedPeriods = new Set(
+      sessions
+        .filter((s) => s.groupId === detailGroup.id && s.status === 'closed')
+        .map((s) => s.periodNumber)
+    );
+    const remaining = [];
+    for (let i = 1; i <= detailGroup.expectedMemberCount; i++) {
+      if (!closedPeriods.has(i)) remaining.push(i);
+    }
+    const sorted = [...eligibleMembers].sort((a, b) => a.name.localeCompare(b.name));
+    return remaining.map((period, idx) => ({
+      period,
+      member: sorted[idx] ?? null,
+      isCurrent: period === detailSession.periodNumber,
+    }));
+  }, [detailGroup, detailSession, sessions, eligibleMembers]);
+
   const openConfirm = () => {
     if (!detailSession) return;
     // default winner = highest bidder (or first eligible if no bids yet for dead hui)
     const topBid = sortedBids[0];
     setConfirmWinnerId(topBid?.memberId ?? eligibleMembers[0]?.id ?? '');
     setConfirmOpen(true);
+  };
+
+  const openWheel = (mems) => {
+    setWheelMembers(mems);
+    setWheelOpen(true);
   };
 
   const closeSession = () => {
@@ -436,6 +474,60 @@ export default function KeuHuiPage() {
       >
         {detailGroup && detailSession ? (
           <div className="space-y-5">
+            {/* Tabs */}
+            <div className="flex gap-1 border-b border-gray-200">
+              {['session', 'schedule'].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setDetailTab(tab)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    detailTab === tab
+                      ? 'border-amber-400 text-amber-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab === 'session' ? 'Phiên kêu hụi' : (
+                    <span className="flex items-center gap-1"><CalendarClock size={14} /> Lịch dự kiến</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Schedule tab */}
+            {detailTab === 'schedule' && (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">
+                  Thứ tự dự kiến dựa trên thành viên chưa hốt — sắp xếp theo tên. Chỉ mang tính tham khảo.
+                </p>
+                <div className="space-y-1.5">
+                  {scheduleRows.map(({ period, member, isCurrent }) => (
+                    <div
+                      key={period}
+                      className={`flex items-center justify-between px-4 py-2.5 rounded-lg border text-sm ${
+                        isCurrent
+                          ? 'bg-amber-50 border-amber-300 font-semibold'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <span className={isCurrent ? 'text-amber-700' : 'text-gray-500'}>
+                        Kỳ {period} {isCurrent && '← kỳ này'}
+                      </span>
+                      <span className={member ? (isCurrent ? 'text-amber-800' : 'text-gray-800') : 'text-gray-400'}>
+                        {member?.name ?? '(chưa xác định)'}
+                      </span>
+                    </div>
+                  ))}
+                  {scheduleRows.length === 0 && (
+                    <p className="text-sm text-gray-400 py-4 text-center">Tất cả kỳ đã được chốt.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Session tab content */}
+            {detailTab === 'session' && <>
+
             {/* Info bar */}
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2 text-gray-600">
@@ -592,6 +684,37 @@ export default function KeuHuiPage() {
               </div>
             )}
 
+            {/* Interest distribution — live hui, after close */}
+            {detailSession.status === 'closed' && detailGroup.type === 'live' && (() => {
+              const rate = detailSession.winnerBidRate ?? 0;
+              if (rate === 0) return null;
+              const { interest } = calcSessionNet(detailGroup, rate);
+              if (interest === 0) return null;
+              const groupMembers = membersForGroup(detailGroup.id);
+              const nonWinners = groupMembers.filter((m) => m.id !== detailSession.winnerId);
+              if (nonWinners.length === 0) return null;
+              const bonus = Math.round(interest / nonWinners.length);
+              return (
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm space-y-2">
+                  <p className="font-semibold text-blue-800">
+                    Phân chia lãi kêu ({rate}%) — {formatVnd(interest)} tổng
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    Chia đều cho {nonWinners.length} thành viên chưa hốt: mỗi người được giảm{' '}
+                    <strong>{formatVnd(bonus)}</strong> kỳ này.
+                  </p>
+                  <div className="grid grid-cols-2 gap-1 pt-1">
+                    {nonWinners.map((m) => (
+                      <div key={m.id} className="flex justify-between text-xs bg-white rounded px-2 py-1 border border-blue-100">
+                        <span className="text-blue-700 truncate">{m.name}</span>
+                        <span className="font-semibold text-blue-900 shrink-0 ml-2">+{formatVnd(bonus)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Bids table */}
             <div>
               <p className="text-sm font-semibold text-gray-800 mb-2">
@@ -721,21 +844,29 @@ export default function KeuHuiPage() {
               </div>
             )}
 
-            {/* Dead hui: Chốt ngay per-member buttons */}
+            {/* Dead hui: Chốt ngay per-member buttons + lucky wheel */}
             {detailGroup.type === 'dead' && detailSession.status === 'open' && eligibleMembers.length > 0 && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-2">
-                <p className="text-xs font-medium text-blue-700 flex items-center gap-1">
-                  <Zap size={13} /> Hụi chết — Chốt ngay người hốt kỳ này:
-                </p>
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                    <Zap size={13} /> Hụi chết — Chốt ngay người hốt kỳ này:
+                  </p>
+                  {eligibleMembers.length >= 2 && (
+                    <button
+                      type="button"
+                      onClick={() => openWheel(eligibleMembers)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-semibold transition-colors"
+                    >
+                      <Shuffle size={13} /> Vòng quay may mắn
+                    </button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {eligibleMembers.map((m) => (
                     <button
                       key={m.id}
                       type="button"
-                      onClick={() => {
-                        setConfirmWinnerId(m.id);
-                        setConfirmOpen(true);
-                      }}
+                      onClick={() => { setConfirmWinnerId(m.id); setConfirmOpen(true); }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-sm text-gray-800 hover:bg-amber-50 hover:border-amber-300 transition-colors"
                     >
                       <Zap size={13} className="text-amber-500" />
@@ -745,6 +876,24 @@ export default function KeuHuiPage() {
                 </div>
               </div>
             )}
+
+            {/* Live hui: tied-bid wheel */}
+            {detailGroup.type === 'live' && detailSession.status === 'open' && tiedBidders.length >= 2 && (
+              <div className="rounded-lg bg-orange-50 border border-orange-200 p-4 space-y-2">
+                <p className="text-xs font-medium text-orange-700">
+                  {tiedBidders.length} thành viên cùng kêu lãi <strong>{sortedBids[0].bidRate}%</strong> — cần bốc thăm.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openWheel(tiedBidders.map((b) => memberById(b.memberId)).filter(Boolean))}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-400 hover:bg-orange-500 text-white font-semibold text-sm transition-colors"
+                >
+                  <Shuffle size={15} /> Vòng quay may mắn
+                </button>
+              </div>
+            )}
+
+            </> /* end session tab */}
           </div>
         ) : null}
       </Modal>
@@ -776,6 +925,42 @@ export default function KeuHuiPage() {
       >
         {detailGroup && detailSession && (
           <div className="space-y-4 text-sm">
+            {/* Contribution warning */}
+            {(() => {
+              const groupMembers = membersForGroup(detailGroup.id);
+              const paidCount = transactions.filter(
+                (t) => t.groupId === detailGroup.id && t.periodNumber === detailSession.periodNumber
+                  && t.kind === 'contribution' && t.status === 'completed'
+              ).length;
+              const unpaid = groupMembers.length - paidCount;
+              if (unpaid <= 0) return null;
+              return (
+                <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-800">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>Còn <strong>{unpaid}</strong> thành viên chưa nộp quỹ kỳ {detailSession.periodNumber}. Hãy kiểm tra trước khi chốt.</span>
+                </div>
+              );
+            })()}
+
+            {/* Tie wheel shortcut */}
+            {tiedBidders.length >= 2 && (
+              <div className="flex items-center justify-between rounded-lg bg-orange-50 border border-orange-200 px-3 py-2">
+                <span className="text-xs text-orange-700">
+                  {tiedBidders.length} người cùng lãi {sortedBids[0]?.bidRate}% — bốc thăm?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmOpen(false);
+                    openWheel(tiedBidders.map((b) => memberById(b.memberId)).filter(Boolean));
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-orange-400 text-white text-xs font-semibold"
+                >
+                  <Shuffle size={12} /> Quay
+                </button>
+              </div>
+            )}
+
             <p className="text-gray-600">
               Chốt phiên sẽ tự động tạo giao dịch hốt và đánh dấu phiên đã kết thúc.
             </p>
@@ -818,6 +1003,32 @@ export default function KeuHuiPage() {
             })()}
           </div>
         )}
+      </Modal>
+
+      {/* ===== Lucky Wheel modal ===== */}
+      <Modal
+        open={wheelOpen}
+        onClose={() => setWheelOpen(false)}
+        title="🎰 Vòng quay may mắn"
+        wide
+        footer={
+          <button
+            type="button"
+            onClick={() => setWheelOpen(false)}
+            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm"
+          >
+            Đóng
+          </button>
+        }
+      >
+        <LuckyWheel
+          members={wheelMembers}
+          onSelect={(id) => {
+            setConfirmWinnerId(id);
+            setWheelOpen(false);
+            setConfirmOpen(true);
+          }}
+        />
       </Modal>
 
       {/* ===== Delete confirm modal ===== */}
