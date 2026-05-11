@@ -35,8 +35,6 @@ export default function App() {
   const exportBundle = useHuiStore((s) => s.exportBundle);
   const importBundle = useHuiStore((s) => s.importBundle);
   const resetAll = useHuiStore((s) => s.resetAll);
-  const adminPasswordHash = useHuiStore((s) => s.adminPasswordHash);
-
   // authedAs: null | 'admin' | memberId
   const [authedAs, setAuthedAs] = useState(
     () => sessionStorage.getItem('hui-authed')
@@ -96,8 +94,7 @@ export default function App() {
 
   const empty = groups.length === 0 && members.length === 0;
 
-  // Show login if not authed, or admin not yet set up password
-  if (!authedAs || (authedAs === 'admin' && !adminPasswordHash)) {
+  if (!authedAs) {
     return <LoginPage onSuccess={doLogin} />;
   }
 

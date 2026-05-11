@@ -41,6 +41,7 @@ function uid() {
  * @property {string} [address]
  * @property {string} joinedAt
  * @property {MemberStatus} status
+ * @property {boolean} [isAdmin]
  */
 
 /**
@@ -114,7 +115,7 @@ function seedState() {
   // ── Members ──────────────────────────────────────────────────────────
   /** @type {Member[]} */
   const members = [
-    { id: m1,  name: 'Chị Liên',  phone: '0901000001', email: 'lien@mail.com',  address: '12 Hàng Bông, HN',    joinedAt: ago(6), status: 'active'  },
+    { id: m1,  name: 'Chị Liên',  phone: '0901000001', email: 'lien@mail.com',  address: '12 Hàng Bông, HN',    joinedAt: ago(6), status: 'active', isAdmin: true },
     { id: m2,  name: 'Anh Minh',  phone: '0901000002', email: 'minh@mail.com',  address: '',                    joinedAt: ago(5), status: 'active'  },
     { id: m3,  name: 'Chị Hoa',   phone: '0901000003', email: '',               address: '45 Đinh Tiên Hoàng',  joinedAt: ago(4), status: 'warning' },
     { id: m4,  name: 'Anh Tuấn',  phone: '0901000004', email: 'tuan@mail.com',  address: '',                    joinedAt: ago(6), status: 'active'  },
@@ -328,6 +329,8 @@ export const useHuiStore = create(
           transactions: [],
           sessions: [],
           initialized: true,
+          memberPasswords: {},
+          adminPasswordHash: '',
         }),
 
       setAdminPasswordHash: (hash) => set({ adminPasswordHash: hash }),
@@ -377,6 +380,7 @@ export const useHuiStore = create(
           address: partial.address || '',
           joinedAt: partial.joinedAt || new Date().toISOString().slice(0, 10),
           status: partial.status || 'active',
+          isAdmin: partial.isAdmin ?? false,
         };
         set((s) => ({ members: [...s.members, row], initialized: true }));
         return row.id;

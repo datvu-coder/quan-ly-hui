@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Eye, Edit2, Trash2, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Eye, Edit2, Trash2, AlertTriangle, CheckCircle2, Clock, Shield } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import { formatVnd, formatDate } from '../lib/format.js';
@@ -15,6 +15,7 @@ const memberSchema = z.object({
   address: z.string().optional(),
   joinedAt: z.string(),
   status: z.enum(['active', 'warning', 'debt', 'left']),
+  isAdmin: z.boolean().default(false),
   _groups: z.array(z.string()).optional(),
 });
 
@@ -86,6 +87,7 @@ export default function MembersPage() {
       address: '',
       joinedAt: new Date().toISOString().slice(0, 10),
       status: 'active',
+      isAdmin: false,
       _groups: [],
     },
   });
@@ -99,6 +101,7 @@ export default function MembersPage() {
       address: '',
       joinedAt: new Date().toISOString().slice(0, 10),
       status: 'active',
+      isAdmin: false,
       _groups: [],
     });
     setModalOpen(true);
@@ -114,6 +117,7 @@ export default function MembersPage() {
       address: m.address || '',
       joinedAt: m.joinedAt,
       status: m.status,
+      isAdmin: m.isAdmin ?? false,
       _groups: gs,
     });
     setModalOpen(true);
@@ -181,8 +185,13 @@ export default function MembersPage() {
                 return (
                   <tr key={member.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                        {member.isAdmin && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
+                            <Shield size={10} /> Admin
+                          </span>
+                        )}
                         {lateMap.has(member.id) && (
                           <span title={`Trễ ${lateMap.get(member.id).length} dây`}>
                             <AlertTriangle size={14} className="text-red-500" />
@@ -324,6 +333,34 @@ export default function MembersPage() {
                 <option value="left">Đã rút</option>
               </select>
             </label>
+
+            <div className="block space-y-1 sm:col-span-2">
+              <span className="text-xs text-gray-600 block mb-2">Vai trò đăng nhập</span>
+              <div className="flex items-center gap-4 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                <Shield size={16} className={form.watch('isAdmin') ? 'text-amber-500' : 'text-gray-300'} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-800">
+                    {form.watch('isAdmin') ? 'Quản trị viên' : 'Thành viên'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {form.watch('isAdmin')
+                      ? 'Có thể đăng nhập và quản lý toàn bộ hệ thống'
+                      : 'Chỉ xem được thông tin cá nhân sau khi đăng nhập'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => form.setValue('isAdmin', !form.watch('isAdmin'), { shouldDirty: true })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                    form.watch('isAdmin') ? 'bg-amber-400' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    form.watch('isAdmin') ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
