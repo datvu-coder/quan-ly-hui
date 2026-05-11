@@ -295,6 +295,7 @@ export const useHuiStore = create(
       sessions: /** @type {Session[]} */ ([]),
       initialized: false,
       adminPasswordHash: '',
+      memberPasswords: /** @type {Record<string,string>} */ ({}),
 
       seedDemo: () => set({ ...seedState(), initialized: true }),
 
@@ -330,6 +331,9 @@ export const useHuiStore = create(
         }),
 
       setAdminPasswordHash: (hash) => set({ adminPasswordHash: hash }),
+
+      setMemberPassword: (memberId, hash) =>
+        set((s) => ({ memberPasswords: { ...s.memberPasswords, [memberId]: hash } })),
 
       addGroup: (partial) => {
         const row = {
@@ -532,6 +536,7 @@ export const useHuiStore = create(
         sessions: s.sessions,
         initialized: s.initialized,
         adminPasswordHash: s.adminPasswordHash,
+        memberPasswords: s.memberPasswords,
       }),
     }
   )

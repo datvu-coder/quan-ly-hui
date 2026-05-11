@@ -20,6 +20,7 @@ import ReportsPage from './pages/ReportsPage.jsx';
 import { Modal } from './components/Modal.jsx';
 import { useHuiStore } from './store/useHuiStore.js';
 import LoginPage from './pages/LoginPage.jsx';
+import MemberPortal from './pages/MemberPortal.jsx';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -36,9 +37,19 @@ export default function App() {
   const resetAll = useHuiStore((s) => s.resetAll);
   const adminPasswordHash = useHuiStore((s) => s.adminPasswordHash);
 
-  const [isAuthed, setIsAuthed] = useState(
-    () => sessionStorage.getItem('hui-authed') === '1'
+  // authedAs: null | 'admin' | memberId
+  const [authedAs, setAuthedAs] = useState(
+    () => sessionStorage.getItem('hui-authed')
   );
+
+  const doLogin = (key) => {
+    sessionStorage.setItem('hui-authed', key);
+    setAuthedAs(key);
+  };
+  const doLogout = () => {
+    sessionStorage.removeItem('hui-authed');
+    setAuthedAs(null);
+  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -85,15 +96,14 @@ export default function App() {
 
   const empty = groups.length === 0 && members.length === 0;
 
-  if (!isAuthed || !adminPasswordHash) {
-    return (
-      <LoginPage
-        onSuccess={() => {
-          sessionStorage.setItem('hui-authed', '1');
-          setIsAuthed(true);
-        }}
-      />
-    );
+  // Show login if not authed, or admin not yet set up password
+  if (!authedAs || (authedAs === 'admin' && !adminPasswordHash)) {
+    return <LoginPage onSuccess={doLogin} />;
+  }
+
+  // Member portal
+  if (authedAs !== 'admin') {
+    return <MemberPortal memberId={authedAs} onLogout={doLogout} />;
   }
 
   return (
@@ -163,10 +173,7 @@ export default function App() {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  sessionStorage.removeItem('hui-authed');
-                  setIsAuthed(false);
-                }}
+                onClick={doLogout}
                 className="w-full flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-slate-200 transition-colors text-sm"
               >
                 <LogOut size={18} />
