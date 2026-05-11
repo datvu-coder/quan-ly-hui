@@ -9,9 +9,9 @@ import { formatVnd, formatDate } from '../lib/format.js';
 import { currentPeriodNumber } from '../lib/period.js';
 
 const memberSchema = z.object({
-  name: z.string().min(2),
-  phone: z.string().min(8).max(20),
-  email: z.union([z.string().email(), z.literal('')]).optional(),
+  name: z.string().min(2, 'Tối thiểu 2 ký tự'),
+  phone: z.string().max(20).optional().or(z.literal('')),
+  email: z.union([z.string().email('Email không hợp lệ'), z.literal('')]).optional(),
   address: z.string().optional(),
   joinedAt: z.string(),
   status: z.enum(['active', 'warning', 'debt', 'left']),
@@ -283,6 +283,9 @@ export default function MembersPage() {
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('phone')}
               />
+              {form.formState.errors.phone ? (
+                <span className="text-xs text-red-400">{form.formState.errors.phone.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Email</span>
@@ -290,6 +293,9 @@ export default function MembersPage() {
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('email')}
               />
+              {form.formState.errors.email ? (
+                <span className="text-xs text-red-400">{form.formState.errors.email.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Ngày tham gia</span>

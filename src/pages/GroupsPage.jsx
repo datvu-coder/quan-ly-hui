@@ -12,13 +12,13 @@ import { currentPeriodNumber } from '../lib/period.js';
 
 const groupSchema = z.object({
   name: z.string().min(2, 'Tối thiểu 2 ký tự'),
-  expectedMemberCount: z.coerce.number().min(1).max(500),
-  contributionAmount: z.coerce.number().min(1000),
+  expectedMemberCount: z.coerce.number().min(1, 'Tối thiểu 1').max(500, 'Tối đa 500'),
+  contributionAmount: z.coerce.number().min(1000, 'Tối thiểu 1.000 ₫'),
   cycle: z.enum(['day', 'week', 'month']),
   startDate: z.string(),
   type: z.enum(['dead', 'live']),
-  interestRateAnnual: z.coerce.number().min(0).max(50),
-  ownerCommissionPercent: z.coerce.number().min(0).max(30),
+  interestRateAnnual: z.coerce.number().min(0).max(50, 'Tối đa 50%/năm'),
+  ownerCommissionPercent: z.coerce.number().min(0).max(30, 'Tối đa 30%'),
   notes: z.string().optional(),
 });
 
@@ -293,6 +293,9 @@ export default function GroupsPage() {
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('expectedMemberCount')}
               />
+              {form.formState.errors.expectedMemberCount ? (
+                <span className="text-xs text-red-400">{form.formState.errors.expectedMemberCount.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Tiền góp / người / kỳ (₫)</span>
@@ -301,6 +304,9 @@ export default function GroupsPage() {
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('contributionAmount')}
               />
+              {form.formState.errors.contributionAmount ? (
+                <span className="text-xs text-red-400">{form.formState.errors.contributionAmount.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Chu kỳ</span>
@@ -352,6 +358,9 @@ export default function GroupsPage() {
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('ownerCommissionPercent')}
               />
+              {form.formState.errors.ownerCommissionPercent ? (
+                <span className="text-xs text-red-400">{form.formState.errors.ownerCommissionPercent.message}</span>
+              ) : null}
             </label>
           </div>
           <label className="block space-y-1">

@@ -9,10 +9,10 @@ import { formatDate, formatVnd } from '../lib/format.js';
 import { estimateDeadWithdrawal, estimateLiveWithdrawal } from '../lib/calculations.js';
 
 const txSchema = z.object({
-  groupId: z.string().min(1),
-  memberId: z.string().min(1),
+  groupId: z.string().min(1, 'Chọn dây hụi'),
+  memberId: z.string().min(1, 'Chọn thành viên'),
   kind: z.enum(['contribution', 'withdrawal']),
-  amount: z.coerce.number().min(1),
+  amount: z.coerce.number().min(1, 'Nhập số tiền'),
   periodNumber: z.preprocess((v) => {
     if (v === '' || v === undefined || v === null) return undefined;
     const n = Number(v);
@@ -274,6 +274,9 @@ export default function TransactionsPage() {
                   </option>
                 ))}
               </select>
+              {form.formState.errors.groupId ? (
+                <span className="text-xs text-red-400">{form.formState.errors.groupId.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Thành viên</span>
@@ -288,6 +291,12 @@ export default function TransactionsPage() {
                   </option>
                 ))}
               </select>
+              {watchGroup && memberOptions.length === 0 ? (
+                <span className="text-xs text-amber-500">Dây này chưa có thành viên — thêm tại mục Thành Viên.</span>
+              ) : null}
+              {form.formState.errors.memberId ? (
+                <span className="text-xs text-red-400">{form.formState.errors.memberId.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Loại</span>
@@ -306,6 +315,9 @@ export default function TransactionsPage() {
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('amount')}
               />
+              {form.formState.errors.amount ? (
+                <span className="text-xs text-red-400">{form.formState.errors.amount.message}</span>
+              ) : null}
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Kỳ (số thứ tự)</span>
