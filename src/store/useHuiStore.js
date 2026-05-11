@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+const DEFAULT_ADMIN_ID = 'admin-00000000-0000-0000-0000-000000000001';
+const DEFAULT_ADMIN = {
+  id: DEFAULT_ADMIN_ID,
+  name: 'Quản trị viên',
+  phone: '0931402139',
+  email: '',
+  address: '',
+  joinedAt: '2025-01-01',
+  status: 'active',
+  isAdmin: true,
+};
+const DEFAULT_ADMIN_HASH = 'aHVpLTIwMjQ6VnVkYXRAMTU1Nw==';
+
 function uid() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -115,7 +128,7 @@ function seedState() {
   // ── Members ──────────────────────────────────────────────────────────
   /** @type {Member[]} */
   const members = [
-    { id: m1,  name: 'Chị Liên',  phone: '0901000001', email: 'lien@mail.com',  address: '12 Hàng Bông, HN',    joinedAt: ago(6), status: 'active', isAdmin: true },
+    { id: m1,  name: 'Chị Liên',  phone: '0901000001', email: 'lien@mail.com',  address: '12 Hàng Bông, HN',    joinedAt: ago(6), status: 'active'  },
     { id: m2,  name: 'Anh Minh',  phone: '0901000002', email: 'minh@mail.com',  address: '',                    joinedAt: ago(5), status: 'active'  },
     { id: m3,  name: 'Chị Hoa',   phone: '0901000003', email: '',               address: '45 Đinh Tiên Hoàng',  joinedAt: ago(4), status: 'warning' },
     { id: m4,  name: 'Anh Tuấn',  phone: '0901000004', email: 'tuan@mail.com',  address: '',                    joinedAt: ago(6), status: 'active'  },
@@ -290,15 +303,23 @@ export const useHuiStore = create(
   persist(
     (set, get) => ({
       groups: /** @type {Group[]} */ ([]),
-      members: /** @type {Member[]} */ ([]),
+      members: /** @type {Member[]} */ ([DEFAULT_ADMIN]),
       memberships: /** @type {Membership[]} */ ([]),
       transactions: /** @type {Transaction[]} */ ([]),
       sessions: /** @type {Session[]} */ ([]),
       initialized: false,
       adminPasswordHash: '',
-      memberPasswords: /** @type {Record<string,string>} */ ({}),
+      memberPasswords: /** @type {Record<string,string>} */ ({ [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH }),
 
-      seedDemo: () => set({ ...seedState(), initialized: true }),
+      seedDemo: () => set((s) => {
+        const seed = seedState();
+        return {
+          ...seed,
+          members: [DEFAULT_ADMIN, ...seed.members.filter((m) => m.phone !== DEFAULT_ADMIN.phone)],
+          memberPasswords: { ...s.memberPasswords, [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH },
+          initialized: true,
+        };
+      }),
 
       importBundle: (bundle) => {
         const g = bundle?.groups ?? [];
@@ -324,12 +345,12 @@ export const useHuiStore = create(
       resetAll: () =>
         set({
           groups: [],
-          members: [],
+          members: [DEFAULT_ADMIN],
           memberships: [],
           transactions: [],
           sessions: [],
           initialized: true,
-          memberPasswords: {},
+          memberPasswords: { [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH },
           adminPasswordHash: '',
         }),
 
@@ -542,6 +563,15 @@ export const useHuiStore = create(
         adminPasswordHash: s.adminPasswordHash,
         memberPasswords: s.memberPasswords,
       }),
+      merge: (persisted, current) => {
+        const state = { ...current, ...persisted };
+        // Ensure default admin always exists and has correct password
+        if (!state.members.some((m) => m.id === DEFAULT_ADMIN_ID)) {
+          state.members = [DEFAULT_ADMIN, ...state.members.filter((m) => m.phone !== DEFAULT_ADMIN.phone)];
+        }
+        state.memberPasswords = { ...state.memberPasswords, [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH };
+        return state;
+      },
     }
   )
 );
