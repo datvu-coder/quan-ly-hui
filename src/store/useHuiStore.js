@@ -79,6 +79,7 @@ function uid() {
  * @property {string|null} transactionId
  * @property {'open'|'closed'} status
  * @property {string} createdAt
+ * @property {string} [notes]
  */
 
 function seedState() {
@@ -229,6 +230,7 @@ export const useHuiStore = create(
       transactions: /** @type {Transaction[]} */ ([]),
       sessions: /** @type {Session[]} */ ([]),
       initialized: false,
+      adminPasswordHash: '',
 
       seedDemo: () => set({ ...seedState(), initialized: true }),
 
@@ -262,6 +264,8 @@ export const useHuiStore = create(
           sessions: [],
           initialized: true,
         }),
+
+      setAdminPasswordHash: (hash) => set({ adminPasswordHash: hash }),
 
       addGroup: (partial) => {
         const row = {
@@ -386,6 +390,7 @@ export const useHuiStore = create(
           winnerNetAmount: null,
           transactionId: null,
           status: 'open',
+          notes: partial.notes ?? '',
           createdAt: new Date().toISOString(),
         });
         set((s) => ({ sessions: [row, ...s.sessions] }));
@@ -462,6 +467,7 @@ export const useHuiStore = create(
         transactions: s.transactions,
         sessions: s.sessions,
         initialized: s.initialized,
+        adminPasswordHash: s.adminPasswordHash,
       }),
     }
   )

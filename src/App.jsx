@@ -19,6 +19,7 @@ import KeuHuiPage from './pages/KeuHuiPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import { Modal } from './components/Modal.jsx';
 import { useHuiStore } from './store/useHuiStore.js';
+import LoginPage from './pages/LoginPage.jsx';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -33,6 +34,11 @@ export default function App() {
   const exportBundle = useHuiStore((s) => s.exportBundle);
   const importBundle = useHuiStore((s) => s.importBundle);
   const resetAll = useHuiStore((s) => s.resetAll);
+  const adminPasswordHash = useHuiStore((s) => s.adminPasswordHash);
+
+  const [isAuthed, setIsAuthed] = useState(
+    () => sessionStorage.getItem('hui-authed') === '1'
+  );
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -78,6 +84,17 @@ export default function App() {
   };
 
   const empty = groups.length === 0 && members.length === 0;
+
+  if (!isAuthed || !adminPasswordHash) {
+    return (
+      <LoginPage
+        onSuccess={() => {
+          sessionStorage.setItem('hui-authed', '1');
+          setIsAuthed(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -146,10 +163,14 @@ export default function App() {
               </div>
               <button
                 type="button"
+                onClick={() => {
+                  sessionStorage.removeItem('hui-authed');
+                  setIsAuthed(false);
+                }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-slate-200 transition-colors text-sm"
               >
                 <LogOut size={18} />
-                Đăng xuất (offline)
+                Đăng xuất
               </button>
             </div>
           ) : null}

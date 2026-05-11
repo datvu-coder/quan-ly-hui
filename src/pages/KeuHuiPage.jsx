@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, CheckCircle2, Clock, Users, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
@@ -12,6 +12,7 @@ const createSchema = z.object({
   groupId: z.string().min(1, 'Chọn dây hụi'),
   periodNumber: z.coerce.number().min(1),
   date: z.string(),
+  notes: z.string().optional(),
 });
 
 const statusBadge = {
@@ -25,7 +26,9 @@ export default function KeuHuiPage() {
   const addSession = useHuiStore((s) => s.addSession);
   const updateSession = useHuiStore((s) => s.updateSession);
   const deleteSession = useHuiStore((s) => s.deleteSession);
+  const transactions = useHuiStore((s) => s.transactions);
   const addTransaction = useHuiStore((s) => s.addTransaction);
+  const deleteTransaction = useHuiStore((s) => s.deleteTransaction);
   const membersForGroup = useHuiStore((s) => s.membersForGroup);
   const memberById = useHuiStore((s) => s.memberById);
   const groupById = useHuiStore((s) => s.groupById);
@@ -40,6 +43,7 @@ export default function KeuHuiPage() {
   // bid form state inside detail modal
   const [bidMemberId, setBidMemberId] = useState('');
   const [bidRate, setBidRate] = useState('0');
+  const [bidRateError, setBidRateError] = useState('');
 
   const createForm = useForm({
     resolver: zodResolver(createSchema),
@@ -47,6 +51,7 @@ export default function KeuHuiPage() {
       groupId: '',
       periodNumber: 1,
       date: new Date().toISOString().slice(0, 10),
+      notes: '',
     },
   });
 
@@ -61,7 +66,7 @@ export default function KeuHuiPage() {
   };
 
   const onCreateSubmit = (vals) => {
-    addSession({ groupId: vals.groupId, periodNumber: vals.periodNumber, date: vals.date });
+    addSession({ groupId: vals.groupId, periodNumber: vals.periodNumber, date: vals.date, notes: vals.notes ?? '' });
     setCreateOpen(false);
     createForm.reset();
   };
@@ -90,10 +95,19 @@ export default function KeuHuiPage() {
 
   const addBid = () => {
     if (!detailSession || !bidMemberId) return;
+    setBidRateError('');
+    if (detailGroup?.type === 'live') {
+      const rate = Number(bidRate);
+      if (isNaN(rate) || rate < 0 || rate > 50) {
+        setBidRateError('Lãi kêu phải từ 0% đến 50%');
+        return;
+      }
+    }
     const newBids = [...detailSession.bids, { memberId: bidMemberId, bidRate: Number(bidRate) || 0 }];
     updateSession(detailSession.id, { bids: newBids });
     setBidMemberId('');
     setBidRate('0');
+    setBidRateError('');
   };
 
   const removeBid = (memberId) => {
@@ -118,7 +132,7 @@ export default function KeuHuiPage() {
   const closeSession = () => {
     if (!detailSession || !detailGroup || !confirmWinnerId) return;
     const winnerBid = detailSession.bids.find((b) => b.memberId === confirmWinnerId);
-    const winnerBidRate = winnerBid?.bidRate ?? 0;
+    const winnerBidRate = detailGroup.type === 'dead' ? 0 : (winnerBid?.bidRate ?? 0);
     const { gross, commission, interest, net } = calcSessionNet(detailGroup, winnerBidRate);
 
     const txId = addTransaction({
@@ -339,6 +353,16 @@ export default function KeuHuiPage() {
             </label>
           </div>
 
+          <label className="block space-y-1">
+            <span className="text-xs text-gray-600">Ghi chú (tùy chọn)</span>
+            <textarea
+              rows={2}
+              placeholder="Ghi chú cho phiên này..."
+              className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm resize-none"
+              {...createForm.register('notes')}
+            />
+          </label>
+
           {watchGroup && (() => {
             const g = groups.find((x) => x.id === watchGroup);
             if (!g) return null;
@@ -425,6 +449,11 @@ export default function KeuHuiPage() {
                 {detailGroup.type === 'live' ? 'Hụi sống (đấu thầu lãi)' : 'Hụi chết'}
               </span>
             </div>
+            {detailSession.notes && (
+              <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                📝 {detailSession.notes}
+              </p>
+            )}
 
             {/* Gross calculation */}
             {(() => {
@@ -453,6 +482,93 @@ export default function KeuHuiPage() {
                       {detailGroup.type === 'live' ? 'Tiền nhận (bid cao nhất)' : 'Tiền nhận'}
                     </p>
                     <p className="font-bold text-emerald-600">{formatVnd(net)}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Contribution payment status */}
+            {(() => {
+              const groupMembers = membersForGroup(detailGroup.id);
+              if (groupMembers.length === 0) return null;
+              const paidTxs = transactions.filter(
+                (t) =>
+                  t.groupId === detailGroup.id &&
+                  t.periodNumber === detailSession.periodNumber &&
+                  t.kind === 'contribution' &&
+                  t.status === 'completed'
+              );
+              const paidSet = new Set(paidTxs.map((t) => t.memberId));
+              const paidCount = paidSet.size;
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-800">
+                      Góp quỹ kỳ {detailSession.periodNumber}
+                    </p>
+                    <span className="text-xs text-gray-500">
+                      {paidCount}/{groupMembers.length} đã nộp
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {groupMembers.map((m) => {
+                      const paid = paidSet.has(m.id);
+                      const tx = paidTxs.find((t) => t.memberId === m.id);
+                      return (
+                        <div
+                          key={m.id}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
+                            paid
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {paid ? (
+                              <CheckCircle2 size={15} className="text-green-600 shrink-0" />
+                            ) : (
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
+                            )}
+                            <span className={paid ? 'text-gray-800' : 'text-gray-500'}>{m.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {paid ? (
+                              <>
+                                <span className="text-xs text-green-700 font-medium">
+                                  {formatVnd(detailGroup.contributionAmount)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => tx && deleteTransaction(tx.id)}
+                                  className="text-xs text-gray-400 hover:text-red-500 px-2 py-0.5 rounded hover:bg-red-50"
+                                >
+                                  Hoàn
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  addTransaction({
+                                    groupId: detailGroup.id,
+                                    memberId: m.id,
+                                    kind: 'contribution',
+                                    amount: detailGroup.contributionAmount,
+                                    periodNumber: detailSession.periodNumber,
+                                    date: detailSession.date,
+                                    status: 'completed',
+                                    notes: `Góp kỳ ${detailSession.periodNumber}`,
+                                  })
+                                }
+                                className="text-xs px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-medium"
+                              >
+                                Đánh dấu đã nộp
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -565,14 +681,17 @@ export default function KeuHuiPage() {
                   </div>
                   {detailGroup.type === 'live' && (
                     <div className="w-32 space-y-1">
-                      <span className="text-xs text-gray-500">Lãi kêu (%)</span>
+                      <span className="text-xs text-gray-500">Lãi kêu (%/kỳ)</span>
                       <input
                         type="number"
                         min={0}
+                        max={50}
                         step={0.1}
                         value={bidRate}
-                        onChange={(e) => setBidRate(e.target.value)}
-                        className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
+                        onChange={(e) => { setBidRate(e.target.value); setBidRateError(''); }}
+                        className={`w-full rounded-lg bg-white border px-3 py-2 text-gray-900 text-sm ${
+                          bidRateError ? 'border-red-400' : 'border-gray-300'
+                        }`}
                       />
                     </div>
                   )}
@@ -585,6 +704,11 @@ export default function KeuHuiPage() {
                     + Thêm
                   </button>
                 </div>
+                {bidRateError && (
+                  <p className="text-xs text-red-500 flex items-center gap-1">
+                    <AlertCircle size={12} /> {bidRateError}
+                  </p>
+                )}
                 {unbidMembers.length === 0 && eligibleMembers.length > 0 && (
                   <p className="text-xs text-gray-400">Tất cả thành viên đủ điều kiện đã được thêm.</p>
                 )}
@@ -597,11 +721,11 @@ export default function KeuHuiPage() {
               </div>
             )}
 
-            {/* For dead hui with open session and no bids: show eligible list to pick directly */}
-            {detailGroup.type === 'dead' && detailSession.status === 'open' && sortedBids.length === 0 && eligibleMembers.length > 0 && (
+            {/* Dead hui: Chốt ngay per-member buttons */}
+            {detailGroup.type === 'dead' && detailSession.status === 'open' && eligibleMembers.length > 0 && (
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-2">
-                <p className="text-xs font-medium text-blue-700">
-                  Hụi chết — Chọn người hốt kỳ này và nhấn "Chốt phiên":
+                <p className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                  <Zap size={13} /> Hụi chết — Chốt ngay người hốt kỳ này:
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {eligibleMembers.map((m) => (
@@ -609,12 +733,12 @@ export default function KeuHuiPage() {
                       key={m.id}
                       type="button"
                       onClick={() => {
-                        updateSession(detailSession.id, {
-                          bids: [{ memberId: m.id, bidRate: 0 }],
-                        });
+                        setConfirmWinnerId(m.id);
+                        setConfirmOpen(true);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-sm text-gray-800 hover:bg-blue-100"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-sm text-gray-800 hover:bg-amber-50 hover:border-amber-300 transition-colors"
                     >
+                      <Zap size={13} className="text-amber-500" />
                       {m.name}
                     </button>
                   ))}

@@ -336,8 +336,9 @@ export default function MembersPage() {
                 return (
                   <label
                     key={g.id}
-                    className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                   >
+                    <span className="truncate">{g.name}</span>
                     <input
                       type="checkbox"
                       checked={checked}
@@ -353,9 +354,8 @@ export default function MembersPage() {
                         }
                         form.setValue('_groups', cur, { shouldDirty: true });
                       }}
-                      className="rounded border-slate-600"
+                      className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
                     />
-                    <span className="truncate">{g.name}</span>
                   </label>
                 );
               })}
