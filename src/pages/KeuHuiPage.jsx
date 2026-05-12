@@ -205,11 +205,11 @@ export default function KeuHuiPage() {
   }, [sessions, filterGroup]);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Kêu hụi</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Kêu hụi</h2>
           <p className="text-sm text-gray-500">
             Quản lý phiên đấu thầu, chọn người hốt &amp; tự động tạo giao dịch
           </p>

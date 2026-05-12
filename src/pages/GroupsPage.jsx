@@ -125,12 +125,12 @@ export default function GroupsPage() {
   }, [detailGroup]);
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
       <LegalBanner interestWarnings={interestWarnings} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Quản lý dây hụi</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Quản lý dây hụi</h2>
           <p className="text-sm text-gray-500">
             {groups.length} dây · Thêm, sửa, xem thành viên &amp; gợi ý tính hốt
           </p>
@@ -162,10 +162,10 @@ export default function GroupsPage() {
               key={group.id}
               className="group rounded-xl bg-white border border-gray-200 overflow-hidden hover:border-gray-300 transition-all hover:shadow-md shadow-sm"
             >
-              <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
+              <div className="bg-gradient-to-r from-gray-50 to-white p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-start justify-between mb-2 gap-2">
                   <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-gray-900 truncate">{group.name}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{group.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">
                       {group.type === 'live'
                         ? `Hụi sống · ${group.interestRateAnnual}%/năm`
@@ -186,7 +186,7 @@ export default function GroupsPage() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-5">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 rounded-lg bg-gray-50">
                     <p className="text-xs text-gray-500 mb-1">Góp/kỳ</p>

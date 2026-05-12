@@ -377,7 +377,7 @@ export default function App() {
           )}
 
           {/* Pages */}
-          <main className="flex-1 overflow-auto min-h-0 pt-14 lg:pt-0 pb-[calc(60px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+          <main className="flex-1 overflow-auto min-h-0 pt-14 lg:pt-0 pb-24 lg:pb-0">
             {currentPage === 'dashboard'    && <DashboardPage />}
             {currentPage === 'groups'       && <GroupsPage />}
             {currentPage === 'members'      && <MembersPage />}

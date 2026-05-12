@@ -135,22 +135,22 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
       <LegalBanner interestWarnings={interestWarnings} fundWarning={fundWarning} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <div
               key={idx}
-              className="group relative overflow-hidden rounded-xl bg-white border border-gray-200 p-6 hover:border-gray-300 hover:shadow-md transition-all shadow-sm"
+              className="group relative overflow-hidden rounded-xl bg-white border border-gray-200 p-4 sm:p-6 hover:border-gray-300 hover:shadow-md transition-all shadow-sm"
             >
               <div className="relative space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
                   </div>
                   <div className={`p-3 rounded-lg ${stat.wrap}`}>
                     <Icon size={22} />
@@ -165,7 +165,7 @@ export default function DashboardPage() {
 
       {lateList.length > 0 && (
         <div className="rounded-xl bg-white border border-red-200 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-red-100 bg-red-50">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-red-100 bg-red-50">
             <AlertTriangle size={18} className="text-red-500" />
             <h3 className="text-sm font-semibold text-red-700">
               Chưa đóng kỳ hiện tại ({lateList.length} trường hợp)
@@ -173,7 +173,7 @@ export default function DashboardPage() {
           </div>
           <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
             {lateList.map(({ member, group, period }, idx) => (
-              <div key={idx} className="flex items-center justify-between px-6 py-3">
+              <div key={idx} className="flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{member?.name ?? '—'}</p>
                   <p className="text-xs text-gray-500 truncate">{group.name}</p>
@@ -188,9 +188,9 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-xl bg-white border border-gray-200 p-6 shadow-sm">
+        <div className="lg:col-span-2 rounded-xl bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Quỹ góp tích lũy (7 tháng gần nhất)</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Quỹ góp tích lũy (7 tháng gần nhất)</h3>
           </div>
           <div className="h-64 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
@@ -220,8 +220,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-gray-200 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Dây hụi</h3>
+        <div className="rounded-xl bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Dây hụi</h3>
           <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-slate">
             {groups.length === 0 ? (
               <p className="text-sm text-gray-400">Chưa có dây hụi. Tạo tại mục Dây Hụi.</p>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
 
       <div className="rounded-xl bg-white border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Giao dịch gần đây</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Giao dịch gần đây</h3>
         </div>
         <div className="space-y-2">
           {recent.length === 0 ? (

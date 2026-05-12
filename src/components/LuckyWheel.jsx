@@ -61,7 +61,7 @@ export default function LuckyWheel({ members, onSelect }) {
 
       // Directly mutate DOM — zero React render overhead during animation
       if (wheelGRef.current) {
-        wheelGRef.current.style.transform = `rotate(${currentRot}deg)`;
+        wheelGRef.current.setAttribute('transform', `rotate(${currentRot} ${CX} ${CY})`);
       }
 
       if (t < 1) {
@@ -107,7 +107,7 @@ export default function LuckyWheel({ members, onSelect }) {
       <div className="flex flex-col items-center gap-6 select-none py-2">
 
         {/* ── Wheel ─────────────────────────────────────────────── */}
-        <div className="relative">
+        <div className="relative w-full max-w-[360px] mx-auto">
 
           {/* Pointer */}
           <div
@@ -132,7 +132,7 @@ export default function LuckyWheel({ members, onSelect }) {
 
           {/* SVG Wheel */}
           <svg
-            width={SIZE} height={SIZE}
+            style={{ width: '100%', height: 'auto' }}
             viewBox={`0 0 ${SIZE} ${SIZE}`}
             overflow="visible"
             className={spinning ? 'wglow' : ''}
@@ -167,7 +167,7 @@ export default function LuckyWheel({ members, onSelect }) {
             {/* ── Rotating group (direct DOM transform via ref) ── */}
             <g
               ref={wheelGRef}
-              style={{ transform: `rotate(${rotRef.current}deg)`, transformOrigin: `${CX}px ${CY}px` }}
+              transform={`rotate(${rotRef.current} ${CX} ${CY})`}
             >
               {members.map((m, i) => {
                 const startDeg = i * seg - 90;

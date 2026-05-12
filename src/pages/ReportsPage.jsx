@@ -136,11 +136,11 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
       <LegalBanner interestWarnings={interestWarnings} fundWarning={fundWarning} />
 
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">Báo cáo</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Báo cáo</h2>
         <p className="text-sm text-gray-500">Tổng hợp tài chính và xuất CSV</p>
       </div>
 
@@ -150,12 +150,12 @@ export default function ReportsPage() {
           return (
             <div
               key={idx}
-              className="rounded-xl bg-white border border-gray-200 p-6 flex items-start justify-between gap-4 shadow-sm"
+              className="rounded-xl bg-white border border-gray-200 p-4 sm:p-6 flex items-start justify-between gap-4 shadow-sm"
             >
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{c.title}</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">{c.title}</h3>
                 <p className="text-sm text-gray-500 mt-1">{c.desc}</p>
-                <p className="text-2xl font-bold text-amber-600 mt-4">{c.value}</p>
+                <p className="text-xl sm:text-2xl font-bold text-amber-600 mt-4">{c.value}</p>
               </div>
               <div className="p-3 rounded-lg bg-amber-50">
                 <Icon size={24} className="text-amber-500" />
@@ -165,8 +165,8 @@ export default function ReportsPage() {
         })}
       </div>
 
-      <div className="rounded-xl bg-white border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Xuất dữ liệu (CSV)</h3>
+      <div className="rounded-xl bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Xuất dữ liệu (CSV)</h3>
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
@@ -196,8 +196,8 @@ export default function ReportsPage() {
       </div>
 
       <div className="rounded-xl bg-white border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-900">Theo từng dây</h3>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Theo từng dây</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px]">

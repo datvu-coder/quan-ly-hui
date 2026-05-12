@@ -122,10 +122,10 @@ export default function TransactionsPage() {
   }, [transactions, filterGroup]);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Giao dịch</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Giao dịch</h2>
           <p className="text-sm text-gray-500">Góp hụi &amp; hốt hụi — có gợi ý số tiền (hốt)</p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
