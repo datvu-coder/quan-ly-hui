@@ -1,17 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  TrendingUp,
-  Users,
-  DollarSign,
-  Menu,
-  X,
-  Bell,
-  Settings,
-  LogOut,
-  BarChart3,
-  Database,
-  Hammer,
-  ChevronLeft,
+  TrendingUp, Users, DollarSign, Bell, Settings,
+  LogOut, BarChart3, Database, Hammer, ChevronLeft,
+  MoreHorizontal, Menu, X, FileBarChart,
 } from 'lucide-react';
 import DashboardPage    from './pages/DashboardPage.jsx';
 import GroupsPage       from './pages/GroupsPage.jsx';
@@ -24,135 +15,89 @@ import { useHuiStore }  from './store/useHuiStore.js';
 import LoginPage        from './pages/LoginPage.jsx';
 import MemberPortal     from './pages/MemberPortal.jsx';
 
-const NAV_ITEMS = [
-  { id: 'dashboard',    label: 'Dashboard',    icon: BarChart3  },
-  { id: 'groups',       label: 'Dây Hụi',      icon: Users      },
-  { id: 'members',      label: 'Thành Viên',   icon: Users      },
-  { id: 'keu-hui',      label: 'Kêu Hụi',      icon: Hammer     },
-  { id: 'transactions', label: 'Giao Dịch',    icon: DollarSign },
-  { id: 'reports',      label: 'Báo Cáo',      icon: TrendingUp },
+// ── Nav configs ──────────────────────────────────────────────────────────────
+const SIDEBAR_NAV = [
+  { id: 'dashboard',    label: 'Dashboard',   icon: BarChart3  },
+  { id: 'groups',       label: 'Dây Hụi',     icon: Users      },
+  { id: 'members',      label: 'Thành Viên',  icon: Users      },
+  { id: 'keu-hui',      label: 'Kêu Hụi',     icon: Hammer     },
+  { id: 'transactions', label: 'Giao Dịch',   icon: DollarSign },
+  { id: 'reports',      label: 'Báo Cáo',     icon: TrendingUp },
 ];
 
+// Mobile: 5 bottom tabs — "more" opens sheet
+const BOTTOM_TABS = [
+  { id: 'dashboard',    label: 'Tổng quan', icon: BarChart3             },
+  { id: 'groups',       label: 'Dây hụi',   icon: Users                 },
+  { id: 'keu-hui',      label: 'Kêu hụi',   icon: Hammer, featured: true},
+  { id: 'transactions', label: 'Giao dịch', icon: DollarSign            },
+  { id: 'more',         label: 'Thêm',      icon: MoreHorizontal        },
+];
+
+// Pages surfaced via the More sheet (not in main bottom tabs)
+const MORE_PAGES = new Set(['members', 'reports']);
+
 const TITLE_MAP = {
-  dashboard:    'Dashboard',
-  groups:       'Quản lý dây hụi',
+  dashboard:    'Tổng quan',
+  groups:       'Dây hụi',
   members:      'Thành viên',
   'keu-hui':    'Kêu hụi',
   transactions: 'Giao dịch',
   reports:      'Báo cáo',
 };
 
-// ── Sidebar component ────────────────────────────────────────────────────────
-function Sidebar({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen, mobileOpen, setMobileOpen, onSeedDemo, onLogout }) {
-  const collapsed = !sidebarOpen;
-
-  const navigate = (id) => {
-    setCurrentPage(id);
-    setMobileOpen(false); // close drawer on mobile after navigation
-  };
+// ── Desktop sidebar ─────────────────────────────────────────────────────────
+function Sidebar({ current, onNavigate, open, setOpen, onSeedDemo, onLogout }) {
+  const collapsed = !open;
+  const FooterBtn = ({ label, Icon, onClick, hoverCls = 'hover:text-slate-200 hover:bg-white/5' }) => (
+    <button type="button" onClick={onClick} title={collapsed ? label : undefined}
+      className={`relative w-full flex items-center gap-3 rounded-xl transition-all duration-150 group text-slate-400 ${hoverCls}
+        ${collapsed ? 'justify-center h-11 px-0' : 'px-3 py-2.5'}`}>
+      <Icon size={17} className="shrink-0" />
+      {!collapsed && <span className="text-[13px] font-medium truncate">{label}</span>}
+      {collapsed && (
+        <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap
+          opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xl z-50 border border-white/10">
+          {label}
+        </span>
+      )}
+    </button>
+  );
 
   return (
-    <aside
-      className={`
-        fixed inset-y-0 left-0 z-40 flex flex-col
-        bg-[#0c1322] border-r border-white/5
-        transition-all duration-300 ease-in-out
-        ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
-        lg:static lg:translate-x-0 lg:shadow-none
-        ${collapsed ? 'lg:w-[68px]' : 'lg:w-64'}
-        w-64
-      `}
-    >
-      {/* ── Header: menu toggle + logo ─────────────────────────────────── */}
-      <div className="flex items-center h-14 shrink-0 border-b border-white/5 relative">
-        {/* Menu toggle — absolute at top-left corner */}
-        <button
-          type="button"
-          onClick={() => {
-            if (window.innerWidth < 1024) setMobileOpen(false);
-            else setSidebarOpen(!sidebarOpen);
-          }}
-          title={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
-          className="absolute left-0 top-0 w-[68px] h-14 flex items-center justify-center
-            text-slate-400 hover:text-white hover:bg-white/5
-            transition-colors duration-150 shrink-0 z-10"
-          aria-label="Toggle menu"
-        >
-          {collapsed
-            ? <Menu size={19} />
-            : <ChevronLeft size={19} />
-          }
+    <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-[#0c1322] border-r border-white/5 transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-64'}`}>
+      {/* Toggle + Logo */}
+      <div className="flex items-center h-14 border-b border-white/5 relative shrink-0">
+        <button type="button" onClick={() => setOpen(!open)} title={collapsed ? 'Mở rộng' : 'Thu gọn'}
+          className="absolute left-0 top-0 w-[68px] h-14 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors z-10">
+          {collapsed ? <Menu size={19} /> : <ChevronLeft size={19} />}
         </button>
-
-        {/* Logo — slides in when expanded */}
-        <div
-          className={`flex items-center gap-2.5 pl-[68px] pr-4 overflow-hidden transition-all duration-300 ${
-            collapsed ? 'opacity-0 w-0 pointer-events-none' : 'opacity-100 w-full'
-          }`}
-        >
+        <div className={`flex items-center gap-2.5 pl-[68px] pr-4 overflow-hidden transition-all duration-300 ${collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-md shadow-amber-900/40">
-            <span className="text-white font-black text-sm leading-none">H</span>
+            <span className="text-white font-black text-sm">H</span>
           </div>
-          <div className="leading-none">
-            <p className="text-[13px] font-bold text-white tracking-wide">HUI PRO</p>
+          <div>
+            <p className="text-[13px] font-bold text-white tracking-wide leading-none">HUI PRO</p>
             <p className="text-[10px] text-slate-500 mt-0.5">Quản lý hụi thông minh</p>
           </div>
         </div>
-
-        {/* Mobile close button */}
-        <button
-          type="button"
-          onClick={() => setMobileOpen(false)}
-          className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-          aria-label="Đóng menu"
-        >
-          <X size={17} />
-        </button>
       </div>
 
-      {/* ── Navigation ──────────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-0.5">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
-          const active = currentPage === id;
+      {/* Nav items */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        {SIDEBAR_NAV.map(({ id, label, icon: Icon }) => {
+          const active = current === id;
           return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => navigate(id)}
-              title={collapsed ? label : undefined}
-              className={`
-                relative w-full flex items-center gap-3 rounded-xl text-left
-                transition-all duration-150 group
-                ${collapsed ? 'px-0 justify-center h-11' : 'px-3 py-2.5'}
-                ${active
-                  ? 'bg-amber-500/12 text-amber-400'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
-                }
-              `}
-            >
-              {/* Active left accent bar */}
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-400 rounded-r-full" />
-              )}
-
-              <Icon
-                size={18}
-                className={`shrink-0 transition-colors ${active ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'}`}
-              />
-
-              {!collapsed && (
-                <span className="text-[13.5px] font-medium truncate">{label}</span>
-              )}
-
-              {/* Tooltip on collapsed (desktop only) */}
+            <button key={id} type="button" onClick={() => onNavigate(id)} title={collapsed ? label : undefined}
+              className={`relative w-full flex items-center gap-3 rounded-xl text-left transition-all duration-150 group
+                ${collapsed ? 'justify-center h-11 px-0' : 'px-3 py-2.5'}
+                ${active ? 'bg-amber-500/12 text-amber-400' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'}`}>
+              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-400 rounded-r-full" />}
+              <Icon size={18} className={`shrink-0 ${active ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+              {!collapsed && <span className="text-[13.5px] font-medium truncate">{label}</span>}
               {collapsed && (
-                <span className="
-                  absolute left-full ml-3 px-2.5 py-1.5 rounded-lg
-                  bg-slate-800 text-white text-xs font-medium whitespace-nowrap
-                  opacity-0 group-hover:opacity-100 pointer-events-none
-                  transition-opacity duration-150 shadow-xl z-50
-                  border border-white/10
-                ">
+                <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap
+                  opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xl z-50 border border-white/10">
                   {label}
                 </span>
               )}
@@ -161,53 +106,196 @@ function Sidebar({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen, mob
         })}
       </nav>
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <div className="border-t border-white/5 p-2 space-y-0.5 shrink-0">
-        <button
-          type="button"
-          onClick={onSeedDemo}
-          title={collapsed ? 'Dữ liệu mẫu' : undefined}
-          className={`relative w-full flex items-center gap-3 rounded-xl transition-all duration-150 group
-            text-slate-400 hover:text-amber-300 hover:bg-white/5
-            ${collapsed ? 'justify-center h-11 px-0' : 'px-3 py-2.5'}
-          `}
-        >
-          <Database size={17} className="shrink-0" />
-          {!collapsed && <span className="text-[13px] font-medium truncate">Dữ liệu mẫu</span>}
-          {collapsed && (
-            <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xl z-50 border border-white/10">
-              Dữ liệu mẫu
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={onLogout}
-          title={collapsed ? 'Đăng xuất' : undefined}
-          className={`relative w-full flex items-center gap-3 rounded-xl transition-all duration-150 group
-            text-slate-400 hover:text-red-400 hover:bg-red-500/8
-            ${collapsed ? 'justify-center h-11 px-0' : 'px-3 py-2.5'}
-          `}
-        >
-          <LogOut size={17} className="shrink-0" />
-          {!collapsed && <span className="text-[13px] font-medium truncate">Đăng xuất</span>}
-          {collapsed && (
-            <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xl z-50 border border-white/10">
-              Đăng xuất
-            </span>
-          )}
-        </button>
+        <FooterBtn label="Dữ liệu mẫu" Icon={Database} onClick={onSeedDemo} hoverCls="hover:text-amber-300 hover:bg-white/5" />
+        <FooterBtn label="Đăng xuất"   Icon={LogOut}   onClick={onLogout}   hoverCls="hover:text-red-400 hover:bg-red-500/8" />
       </div>
     </aside>
+  );
+}
+
+// ── Mobile: top header ──────────────────────────────────────────────────────
+function MobileHeader({ title, onSettings }) {
+  return (
+    <header className="lg:hidden fixed top-0 inset-x-0 z-20 h-14 bg-white border-b border-gray-100 flex items-center px-4 gap-3 shadow-sm">
+      {/* Brand */}
+      <div className="flex items-center gap-2 mr-auto">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm shadow-amber-300/40">
+          <span className="text-white font-black text-sm leading-none">H</span>
+        </div>
+        <span className="text-[15px] font-bold text-gray-900 tracking-tight">{title}</span>
+      </div>
+
+      {/* Actions */}
+      <button type="button" className="relative p-2 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors">
+        <Bell size={19} className="text-gray-500" />
+        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+      </button>
+      <button type="button" onClick={onSettings} className="p-2 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors">
+        <Settings size={19} className="text-gray-500" />
+      </button>
+    </header>
+  );
+}
+
+// ── Mobile: bottom nav ──────────────────────────────────────────────────────
+function BottomNav({ current, onNavigate, onMoreOpen }) {
+  const isMoreActive = MORE_PAGES.has(current);
+
+  return (
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-20 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="flex items-end h-[60px] px-2">
+        {BOTTOM_TABS.map(({ id, label, icon: Icon, featured }) => {
+          if (featured) {
+            // Elevated centre FAB-style button
+            const active = current === id;
+            return (
+              <button key={id} type="button" onClick={() => onNavigate(id)}
+                className="flex-1 flex flex-col items-center pb-1 -translate-y-3 gap-1 focus:outline-none">
+                <div className={`w-[54px] h-[54px] rounded-full flex items-center justify-center shadow-lg transition-all
+                  ${active
+                    ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-400/50 ring-4 ring-white scale-105'
+                    : 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-400/35 ring-4 ring-white'
+                  }`}>
+                  <Icon size={24} className="text-white" strokeWidth={2.2} />
+                </div>
+                <span className={`text-[10px] font-bold leading-none ${active ? 'text-amber-500' : 'text-gray-400'}`}>
+                  {label}
+                </span>
+              </button>
+            );
+          }
+
+          if (id === 'more') {
+            return (
+              <button key={id} type="button" onClick={onMoreOpen}
+                className="flex-1 flex flex-col items-center justify-center gap-1.5 h-full focus:outline-none">
+                <MoreHorizontal size={22} className={isMoreActive ? 'text-amber-500' : 'text-gray-400'} strokeWidth={2} />
+                <span className={`text-[10px] font-semibold leading-none ${isMoreActive ? 'text-amber-500' : 'text-gray-400'}`}>
+                  Thêm
+                </span>
+              </button>
+            );
+          }
+
+          const active = current === id;
+          return (
+            <button key={id} type="button" onClick={() => onNavigate(id)}
+              className="flex-1 flex flex-col items-center justify-center gap-1.5 h-full focus:outline-none group">
+              <div className={`w-7 h-7 flex items-center justify-center rounded-xl transition-all duration-150 ${active ? 'bg-amber-50' : ''}`}>
+                <Icon size={20} className={active ? 'text-amber-500' : 'text-gray-400'} strokeWidth={active ? 2.2 : 1.8} />
+              </div>
+              <span className={`text-[10px] font-semibold leading-none transition-colors ${active ? 'text-amber-500' : 'text-gray-400'}`}>
+                {label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+// ── Mobile: More bottom sheet ───────────────────────────────────────────────
+function MoreSheet({ open, onClose, onNavigate, currentPage, onSeedDemo, onLogout, onSettings }) {
+  const Row = ({ id, label, Icon, desc, iconBg, iconColor, onClick, labelColor = 'text-gray-900' }) => (
+    <button type="button" onClick={onClick}
+      className="w-full flex items-center gap-4 px-4 py-3.5 active:bg-gray-50 transition-colors text-left rounded-2xl">
+      <div className={`w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center shrink-0`}>
+        <Icon size={20} className={iconColor} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-[14px] font-semibold ${labelColor}`}>{label}</p>
+        {desc && <p className="text-[12px] text-gray-400 mt-0.5 truncate">{desc}</p>}
+      </div>
+      {id && MORE_PAGES.has(id) && currentPage === id && (
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+      )}
+    </button>
+  );
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 z-30 lg:hidden transition-all duration-300 ${open ? 'bg-black/50 backdrop-blur-sm pointer-events-auto' : 'bg-transparent pointer-events-none'}`}
+        onClick={onClose}
+      />
+      {/* Sheet */}
+      <div className={`fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white rounded-t-[28px] shadow-2xl transition-transform duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+        ${open ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+
+        {/* Pull handle */}
+        <div className="flex justify-center pt-3 pb-4">
+          <div className="w-9 h-1 rounded-full bg-gray-200" />
+        </div>
+
+        {/* Sheet header */}
+        <div className="flex items-center justify-between px-5 pb-3">
+          <p className="text-[16px] font-bold text-gray-900">Menu</p>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+            <X size={15} className="text-gray-500" />
+          </button>
+        </div>
+
+        {/* Primary nav items */}
+        <div className="px-2 pb-1">
+          <Row id="members" label="Thành Viên" Icon={Users}       desc="Quản lý danh sách hụi viên" iconBg="bg-violet-50" iconColor="text-violet-500"
+            onClick={() => { onNavigate('members'); onClose(); }} />
+          <Row id="reports" label="Báo Cáo"    Icon={FileBarChart} desc="Thống kê tài chính hụi"      iconBg="bg-blue-50"   iconColor="text-blue-500"
+            onClick={() => { onNavigate('reports'); onClose(); }} />
+        </div>
+
+        {/* Divider */}
+        <div className="mx-5 border-t border-gray-100 my-2" />
+
+        {/* Utility items */}
+        <div className="px-2 pb-1">
+          <Row label="Dữ liệu mẫu" Icon={Database} desc="Nạp dữ liệu demo để thử nghiệm" iconBg="bg-emerald-50" iconColor="text-emerald-500"
+            onClick={() => { onSeedDemo(); onClose(); }} />
+          <Row label="Sao lưu dữ liệu" Icon={Settings} desc="Xuất / nhập backup JSON" iconBg="bg-gray-100" iconColor="text-gray-500"
+            onClick={() => { onSettings(); onClose(); }} />
+        </div>
+
+        {/* Divider */}
+        <div className="mx-5 border-t border-gray-100 my-2" />
+
+        {/* Logout */}
+        <div className="px-2 pb-4">
+          <Row label="Đăng xuất" Icon={LogOut} desc="Thoát khỏi tài khoản hiện tại" iconBg="bg-red-50" iconColor="text-red-400"
+            labelColor="text-red-500" onClick={() => { onLogout(); onClose(); }} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Desktop top header ──────────────────────────────────────────────────────
+function DesktopHeader({ title, onSettings }) {
+  return (
+    <header className="hidden lg:flex h-14 bg-white border-b border-gray-200 items-center gap-3 px-5 shrink-0 shadow-sm">
+      <h1 className="flex-1 text-[15px] font-semibold text-gray-900 truncate">{title}</h1>
+      <div className="flex items-center gap-1 shrink-0">
+        <button type="button" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
+          <Bell size={18} className="text-gray-500" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+        </button>
+        <button type="button" onClick={onSettings} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+          <Settings size={18} className="text-gray-500" />
+        </button>
+      </div>
+    </header>
   );
 }
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [currentPage,  setCurrentPage]  = useState('dashboard');
-  const [sidebarOpen,  setSidebarOpen]  = useState(true);   // desktop collapsed state
-  const [mobileOpen,   setMobileOpen]   = useState(false);  // mobile drawer state
+  const [sidebarOpen,  setSidebarOpen]  = useState(true);
+  const [moreOpen,     setMoreOpen]     = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const fileRef = useRef(null);
@@ -220,16 +308,17 @@ export default function App() {
   const resetAll     = useHuiStore((s) => s.resetAll);
 
   const [authedAs, setAuthedAs] = useState(() => sessionStorage.getItem('hui-authed'));
-
-  // Close mobile drawer on resize to desktop
-  useEffect(() => {
-    const onResize = () => { if (window.innerWidth >= 1024) setMobileOpen(false); };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
   const doLogin  = (key) => { sessionStorage.setItem('hui-authed', key); setAuthedAs(key); };
   const doLogout = () => { sessionStorage.removeItem('hui-authed'); setAuthedAs(null); };
+
+  // Close more sheet on desktop resize
+  useEffect(() => {
+    const fn = () => { if (window.innerWidth >= 1024) setMoreOpen(false); };
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+
+  const navigate = (id) => { setCurrentPage(id); setMoreOpen(false); };
 
   const downloadJson = () => {
     const bundle = exportBundle();
@@ -243,153 +332,98 @@ export default function App() {
   const onPickImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      importBundle(JSON.parse(await file.text()));
-    } catch {
-      alert('Không đọc được file JSON. Kiểm tra định dạng.');
-    }
+    try { importBundle(JSON.parse(await file.text())); }
+    catch { alert('Không đọc được file JSON. Kiểm tra định dạng.'); }
     e.target.value = '';
     setSettingsOpen(false);
   };
 
-  if (!authedAs)           return <LoginPage onSuccess={doLogin} />;
+  if (!authedAs)            return <LoginPage onSuccess={doLogin} />;
   if (authedAs !== 'admin') return <MemberPortal memberId={authedAs} onLogout={doLogout} />;
 
-  const empty = groups.length === 0 && members.length === 0;
+  const empty     = groups.length === 0 && members.length === 0;
+  const pageTitle = TITLE_MAP[currentPage] ?? 'Dashboard';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <>
+      {/* ── Mobile layout ─────────────────────────────────────────────── */}
+      <MobileHeader title={pageTitle} onSettings={() => setSettingsOpen(true)} />
 
-      {/* ── Mobile backdrop ─────────────────────────────────────────────── */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
+      {/* ── Desktop layout ────────────────────────────────────────────── */}
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar
+          current={currentPage}
+          onNavigate={navigate}
+          open={sidebarOpen}
+          setOpen={setSidebarOpen}
+          onSeedDemo={seedDemo}
+          onLogout={doLogout}
         />
-      )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <Sidebar
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-        onSeedDemo={seedDemo}
-        onLogout={doLogout}
-      />
+        {/* Main content column */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-hidden">
+          <DesktopHeader title={pageTitle} onSettings={() => setSettingsOpen(true)} />
 
-      {/* ── Main content ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-hidden">
+          {/* Empty state */}
+          {empty && (
+            <div className="mx-3 sm:mx-6 mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200
+              flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <span>Chưa có dữ liệu. Thử <strong>Dữ liệu mẫu</strong> hoặc tạo dây hụi / thành viên.</span>
+              <button type="button" onClick={seedDemo}
+                className="shrink-0 px-4 py-2 rounded-lg bg-amber-400 text-slate-900 font-semibold text-sm">
+                Tải mẫu ngay
+              </button>
+            </div>
+          )}
 
-        {/* Top header */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center gap-2 px-3 sm:px-5 shrink-0 shadow-sm">
-          {/* Mobile hamburger */}
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 -ml-1 rounded-xl hover:bg-gray-100 transition-colors"
-            aria-label="Mở menu"
-          >
-            <Menu size={20} className="text-gray-600" />
-          </button>
-
-          {/* Page title */}
-          <h1 className="flex-1 text-[15px] sm:text-base font-semibold text-gray-900 truncate">
-            {TITLE_MAP[currentPage]}
-          </h1>
-
-          {/* Header actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors"
-              aria-label="Thông báo"
-            >
-              <Bell size={18} className="text-gray-500" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full shadow-sm" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-              aria-label="Cài đặt"
-            >
-              <Settings size={18} className="text-gray-500" />
-            </button>
-          </div>
-        </header>
-
-        {/* Empty state banner */}
-        {empty && (
-          <div className="mx-3 sm:mx-6 mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <span>Chưa có dữ liệu. Thử <strong>Dữ liệu mẫu</strong> trên menu hoặc tạo dây hụi / thành viên.</span>
-            <button
-              type="button"
-              onClick={seedDemo}
-              className="shrink-0 px-4 py-2 rounded-lg bg-amber-400 text-slate-900 font-semibold text-sm"
-            >
-              Tải mẫu ngay
-            </button>
-          </div>
-        )}
-
-        {/* Page content */}
-        <main className="flex-1 overflow-auto min-h-0">
-          {currentPage === 'dashboard'    && <DashboardPage />}
-          {currentPage === 'groups'       && <GroupsPage />}
-          {currentPage === 'members'      && <MembersPage />}
-          {currentPage === 'keu-hui'      && <KeuHuiPage />}
-          {currentPage === 'transactions' && <TransactionsPage />}
-          {currentPage === 'reports'      && <ReportsPage />}
-        </main>
+          {/* Pages */}
+          <main className="flex-1 overflow-auto min-h-0 pt-14 lg:pt-0 pb-[calc(60px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+            {currentPage === 'dashboard'    && <DashboardPage />}
+            {currentPage === 'groups'       && <GroupsPage />}
+            {currentPage === 'members'      && <MembersPage />}
+            {currentPage === 'keu-hui'      && <KeuHuiPage />}
+            {currentPage === 'transactions' && <TransactionsPage />}
+            {currentPage === 'reports'      && <ReportsPage />}
+          </main>
+        </div>
       </div>
 
-      {/* ── Settings modal ──────────────────────────────────────────────── */}
-      <Modal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        title="Dữ liệu &amp; sao lưu"
-        wide
+      {/* ── Mobile: bottom nav + more sheet ───────────────────────────── */}
+      <BottomNav current={currentPage} onNavigate={navigate} onMoreOpen={() => setMoreOpen(true)} />
+      <MoreSheet
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        onNavigate={navigate}
+        currentPage={currentPage}
+        onSeedDemo={seedDemo}
+        onLogout={doLogout}
+        onSettings={() => setSettingsOpen(true)}
+      />
+
+      {/* ── Settings modal ─────────────────────────────────────────────── */}
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Dữ liệu &amp; sao lưu" wide
         footer={
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(false)}
-            className="px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm"
-          >
+          <button type="button" onClick={() => setSettingsOpen(false)} className="px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm">
             Đóng
           </button>
         }
       >
         <div className="space-y-6 text-sm text-gray-700">
-          <p className="text-gray-600">
-            Ứng dụng lưu cục bộ trên trình duyệt (localStorage). Hãy xuất JSON định kỳ để tránh mất dữ liệu khi xóa cache.
-          </p>
+          <p className="text-gray-600">Ứng dụng lưu cục bộ trên trình duyệt (localStorage). Hãy xuất JSON định kỳ để tránh mất dữ liệu khi xóa cache.</p>
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={downloadJson}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold"
-            >
+            <button type="button" onClick={downloadJson}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold">
               Xuất backup JSON
             </button>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-600"
-            >
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-600">
               Nhập backup JSON
             </button>
             <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onPickImport} />
           </div>
           <div className="border-t border-gray-200 pt-4">
-            <button
-              type="button"
-              onClick={() => setResetConfirm(true)}
-              className="px-4 py-2 rounded-lg bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30"
-            >
+            <button type="button" onClick={() => setResetConfirm(true)}
+              className="px-4 py-2 rounded-lg bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30">
               Xóa toàn bộ dữ liệu
             </button>
           </div>
@@ -397,33 +431,17 @@ export default function App() {
       </Modal>
 
       {/* ── Reset confirm modal ─────────────────────────────────────────── */}
-      <Modal
-        open={resetConfirm}
-        onClose={() => setResetConfirm(false)}
-        title="Xóa toàn bộ?"
+      <Modal open={resetConfirm} onClose={() => setResetConfirm(false)} title="Xóa toàn bộ?"
         footer={
           <>
-            <button
-              type="button"
-              onClick={() => setResetConfirm(false)}
-              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={() => { resetAll(); setResetConfirm(false); setSettingsOpen(false); }}
-              className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium"
-            >
-              Xóa hết
-            </button>
+            <button type="button" onClick={() => setResetConfirm(false)} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm">Hủy</button>
+            <button type="button" onClick={() => { resetAll(); setResetConfirm(false); setSettingsOpen(false); }}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium">Xóa hết</button>
           </>
         }
       >
-        <p className="text-sm text-gray-600">
-          Xóa dây hụi, thành viên và giao dịch trên máy này. Nên xuất backup trước khi thử.
-        </p>
+        <p className="text-sm text-gray-600">Xóa dây hụi, thành viên và giao dịch trên máy này. Nên xuất backup trước khi thử.</p>
       </Modal>
-    </div>
+    </>
   );
 }
