@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   LogOut, CheckCircle2, Clock, TrendingDown, TrendingUp,
   Users, Calendar, Gavel, X, Edit2, AlertCircle,
+  QrCode, Send, Copy, XCircle,
 } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
@@ -201,6 +202,157 @@ function BidPanel({ group, session, memberId }) {
   );
 }
 
+// ── Payment / QR section ────────────────────────────────────────────────────
+function PaymentSection({ group, session, memberId }) {
+  const bankSettings     = useHuiStore((s) => s.bankSettings);
+  const paymentRequests  = useHuiStore((s) => s.paymentRequests);
+  const addPaymentRequest = useHuiStore((s) => s.addPaymentRequest);
+
+  const existingReq = paymentRequests.find(
+    (r) => r.memberId === memberId && r.groupId === group.id && r.periodNumber === session.periodNumber
+  );
+
+  const [open, setOpen]           = useState(false);
+  const [note, setNote]           = useState('');
+  const [transferRef, setTranRef] = useState('');
+  const [copied, setCopied]       = useState(false);
+
+  const hasBankInfo = bankSettings.accountNo || bankSettings.qrImageDataUrl;
+  if (!hasBankInfo && !existingReq) return null;
+
+  const doCopy = () => {
+    navigator.clipboard.writeText(bankSettings.accountNo).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const doSubmit = () => {
+    addPaymentRequest({
+      memberId,
+      groupId: group.id,
+      periodNumber: session.periodNumber,
+      amount: group.contributionAmount,
+      note,
+      transferRef,
+    });
+    setOpen(false);
+    setNote('');
+    setTranRef('');
+  };
+
+  if (existingReq?.status === 'pending') {
+    return (
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
+        <Clock size={16} className="text-blue-500 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-blue-800">Đang chờ admin xác nhận</p>
+          <p className="text-xs text-blue-600 mt-0.5">
+            Bạn đã báo chuyển khoản {formatDate(existingReq.createdAt)}
+            {existingReq.transferRef && ` · Ref: ${existingReq.transferRef}`}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+      {/* Bank info + QR */}
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <QrCode size={15} className="text-amber-600" />
+          <p className="text-sm font-semibold text-amber-800">Thanh toán</p>
+        </div>
+
+        {existingReq?.status === 'rejected' && (
+          <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+            <XCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-red-700">Lệnh bị từ chối</p>
+              {existingReq.reviewNote && <p className="text-xs text-red-600">{existingReq.reviewNote}</p>}
+              <p className="text-xs text-red-500 mt-0.5">Bạn có thể gửi lại bên dưới.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-4 items-start">
+          {bankSettings.qrImageDataUrl && (
+            <img src={bankSettings.qrImageDataUrl} alt="QR" className="w-28 h-28 object-contain rounded-lg border border-amber-200 shrink-0" />
+          )}
+          <div className="space-y-1.5 flex-1">
+            {bankSettings.bankName && (
+              <div>
+                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Ngân hàng</p>
+                <p className="text-sm font-semibold text-gray-900">{bankSettings.bankName}</p>
+              </div>
+            )}
+            {bankSettings.accountNo && (
+              <div>
+                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Số tài khoản</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-gray-900 tracking-wider">{bankSettings.accountNo}</p>
+                  <button type="button" onClick={doCopy}
+                    className="p-1 rounded hover:bg-amber-200 transition-colors">
+                    <Copy size={13} className={copied ? 'text-green-600' : 'text-amber-600'} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {bankSettings.accountName && (
+              <div>
+                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Chủ tài khoản</p>
+                <p className="text-sm text-gray-800">{bankSettings.accountName}</p>
+              </div>
+            )}
+            <p className="text-xs text-amber-700 pt-1">
+              Số tiền: <strong>{formatVnd(group.contributionAmount)}</strong> · Kỳ {session.periodNumber}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Submit / form */}
+      {!open ? (
+        <div className="px-4 pb-4">
+          <button type="button" onClick={() => setOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-colors">
+            <Send size={15} />
+            {existingReq?.status === 'rejected' ? 'Gửi lại lệnh' : 'Báo đã chuyển khoản'}
+          </button>
+        </div>
+      ) : (
+        <div className="px-4 pb-4 pt-2 space-y-2 border-t border-amber-200">
+          <p className="text-xs font-medium text-amber-700">Xác nhận đã chuyển khoản</p>
+          <input
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            placeholder="Mã giao dịch / nội dung CK (tuỳ chọn)"
+            value={transferRef}
+            onChange={(e) => setTranRef(e.target.value)}
+          />
+          <textarea
+            rows={2}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 resize-none"
+            placeholder="Ghi chú thêm (tuỳ chọn)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setOpen(false)}
+              className="flex-1 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-medium hover:bg-gray-50">
+              Hủy
+            </button>
+            <button type="button" onClick={doSubmit}
+              className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
+              Gửi xác nhận
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main portal ───────────────────────────────────────────────────────────────
 export default function MemberPortal({ memberId, onLogout }) {
   const memberById      = useHuiStore((s) => s.memberById);
@@ -381,6 +533,11 @@ export default function MemberPortal({ memberId, onLogout }) {
                     </div>
                   ) : (
                     <p className="text-xs text-gray-400 italic">Chưa có phiên kêu hụi đang mở.</p>
+                  )}
+
+                  {/* QR / Payment section — only when unpaid */}
+                  {openSession && !myPaidThisPeriod && (
+                    <PaymentSection group={g} session={openSession} memberId={memberId} />
                   )}
 
                   {/* Win status */}

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import { formatDate, formatVnd } from '../lib/format.js';
@@ -40,9 +40,16 @@ export default function TransactionsPage() {
   const memberById = useHuiStore((s) => s.memberById);
   const groupById = useHuiStore((s) => s.groupById);
 
+  const paymentRequests        = useHuiStore((s) => s.paymentRequests);
+  const confirmPaymentRequest  = useHuiStore((s) => s.confirmPaymentRequest);
+  const rejectPaymentRequest   = useHuiStore((s) => s.rejectPaymentRequest);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState('');
   const [deleteId, setDeleteId] = useState(null);
+  const [activeTab, setActiveTab] = useState('transactions');
+  const [rejectId, setRejectId] = useState(null);
+  const [rejectNote, setRejectNote] = useState('');
 
   const form = useForm({
     resolver: zodResolver(txSchema),
@@ -121,6 +128,13 @@ export default function TransactionsPage() {
     return transactions.filter((t) => t.groupId === filterGroup);
   }, [transactions, filterGroup]);
 
+  const pendingRequests = useMemo(
+    () => paymentRequests.filter((r) => r.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [paymentRequests]
+  );
+  const pendingCount = pendingRequests.length;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -128,32 +142,61 @@ export default function TransactionsPage() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Giao dịch</h2>
           <p className="text-sm text-gray-500">Góp hụi &amp; hốt hụi — có gợi ý số tiền (hốt)</p>
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <select
-            value={filterGroup}
-            onChange={(e) => setFilterGroup(e.target.value)}
-            className="rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm min-w-[180px]"
-          >
-            <option value="">Tất cả dây</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={openCreate}
-            disabled={groups.length === 0}
-            title={groups.length === 0 ? 'Tạo dây hụi và thành viên trước' : ''}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold text-sm disabled:opacity-40 disabled:pointer-events-none"
-          >
-            <Plus size={18} />
-            Thêm giao dịch
-          </button>
-        </div>
+        {activeTab === 'transactions' && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <select
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value)}
+              className="rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm min-w-[180px]"
+            >
+              <option value="">Tất cả dây</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={openCreate}
+              disabled={groups.length === 0}
+              title={groups.length === 0 ? 'Tạo dây hụi và thành viên trước' : ''}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold text-sm disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Plus size={18} />
+              Thêm giao dịch
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex border-b border-gray-200 -mt-2">
+        {[
+          { key: 'transactions', label: 'Giao dịch' },
+          { key: 'pending',      label: 'Chờ xác nhận', badge: pendingCount },
+        ].map(({ key, label, badge }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setActiveTab(key)}
+            className={`relative px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === key
+                ? 'border-amber-400 text-amber-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {label}
+            {badge > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                {badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'transactions' && (
       <div className="rounded-xl bg-white border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px]">
@@ -224,9 +267,96 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      )}
+      {activeTab === 'transactions' && filtered.length === 0 && (
         <p className="text-center text-gray-400 text-sm py-6">Không có giao dịch.</p>
-      ) : null}
+      )}
+
+      {/* ── Lệnh chờ xác nhận ── */}
+      {activeTab === 'pending' && (
+        <div className="space-y-3">
+          {pendingRequests.length === 0 ? (
+            <div className="rounded-xl bg-white border border-gray-200 p-10 text-center shadow-sm">
+              <CheckCircle2 size={32} className="text-gray-200 mx-auto mb-3" />
+              <p className="text-sm text-gray-400">Không có lệnh nào chờ xác nhận.</p>
+            </div>
+          ) : (
+            pendingRequests.map((req) => {
+              const m = memberById(req.memberId);
+              const g = groupById(req.groupId);
+              return (
+                <div key={req.id} className="rounded-xl bg-white border border-gray-200 p-4 shadow-sm space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-gray-900">{m?.name ?? '—'}</p>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">Chờ duyệt</span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {g?.name ?? '—'} · Kỳ {req.periodNumber} · {formatDate(req.createdAt)}
+                      </p>
+                      {req.transferRef && (
+                        <p className="text-xs text-gray-400 mt-0.5">Ref: {req.transferRef}</p>
+                      )}
+                      {req.note && (
+                        <p className="text-xs text-gray-400 italic mt-0.5">"{req.note}"</p>
+                      )}
+                    </div>
+                    <p className="text-base font-bold text-amber-600 shrink-0">{formatVnd(req.amount)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => confirmPaymentRequest(req.id)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+                    >
+                      <CheckCircle2 size={15} /> Xác nhận
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setRejectId(req.id); setRejectNote(''); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-sm font-semibold transition-colors"
+                    >
+                      <XCircle size={15} /> Từ chối
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Reject modal */}
+      <Modal
+        open={!!rejectId}
+        onClose={() => setRejectId(null)}
+        title="Từ chối lệnh chuyển khoản"
+        footer={
+          <>
+            <button type="button" onClick={() => setRejectId(null)}
+              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm">
+              Hủy
+            </button>
+            <button type="button"
+              onClick={() => { rejectPaymentRequest(rejectId, rejectNote); setRejectId(null); }}
+              className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium">
+              Từ chối
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">Ghi chú lý do từ chối (tuỳ chọn, sẽ hiển thị cho thành viên):</p>
+          <textarea
+            rows={3}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+            placeholder="VD: Không tìm thấy giao dịch phù hợp..."
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+          />
+        </div>
+      </Modal>
 
       <Modal
         open={modalOpen}

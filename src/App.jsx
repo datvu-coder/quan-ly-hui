@@ -299,13 +299,16 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const fileRef = useRef(null);
+  const qrRef   = useRef(null);
 
-  const groups       = useHuiStore((s) => s.groups);
-  const members      = useHuiStore((s) => s.members);
-  const seedDemo     = useHuiStore((s) => s.seedDemo);
-  const exportBundle = useHuiStore((s) => s.exportBundle);
-  const importBundle = useHuiStore((s) => s.importBundle);
-  const resetAll     = useHuiStore((s) => s.resetAll);
+  const groups          = useHuiStore((s) => s.groups);
+  const members         = useHuiStore((s) => s.members);
+  const seedDemo        = useHuiStore((s) => s.seedDemo);
+  const exportBundle    = useHuiStore((s) => s.exportBundle);
+  const importBundle    = useHuiStore((s) => s.importBundle);
+  const resetAll        = useHuiStore((s) => s.resetAll);
+  const bankSettings    = useHuiStore((s) => s.bankSettings);
+  const setBankSettings = useHuiStore((s) => s.setBankSettings);
 
   const [authedAs, setAuthedAs] = useState(() => sessionStorage.getItem('hui-authed'));
   const doLogin  = (key) => { sessionStorage.setItem('hui-authed', key); setAuthedAs(key); };
@@ -327,6 +330,15 @@ export default function App() {
     const a    = document.createElement('a');
     a.href = url; a.download = `hui-backup-${Date.now()}.json`; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const onPickQr = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setBankSettings({ qrImageDataUrl: ev.target.result });
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const onPickImport = async (e) => {
@@ -401,29 +413,94 @@ export default function App() {
       />
 
       {/* ── Settings modal ─────────────────────────────────────────────── */}
-      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Dữ liệu &amp; sao lưu" wide
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Cài đặt &amp; sao lưu" wide
         footer={
-          <button type="button" onClick={() => setSettingsOpen(false)} className="px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm">
+          <button type="button" onClick={() => setSettingsOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm">
             Đóng
           </button>
         }
       >
         <div className="space-y-6 text-sm text-gray-700">
-          <p className="text-gray-600">Ứng dụng lưu cục bộ trên trình duyệt (localStorage). Hãy xuất JSON định kỳ để tránh mất dữ liệu khi xóa cache.</p>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={downloadJson}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold">
-              Xuất backup JSON
-            </button>
-            <button type="button" onClick={() => fileRef.current?.click()}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-600">
-              Nhập backup JSON
-            </button>
-            <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onPickImport} />
+
+          {/* ── QR / Ngân hàng ── */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900">QR &amp; Thông tin thanh toán</h3>
+            <p className="text-xs text-gray-500">Hiển thị cho thành viên khi cần chuyển khoản góp hụi.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block space-y-1">
+                <span className="text-xs text-gray-600">Tên ngân hàng</span>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm"
+                  placeholder="VD: Vietcombank"
+                  value={bankSettings.bankName}
+                  onChange={(e) => setBankSettings({ bankName: e.target.value })}
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-gray-600">Số tài khoản</span>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm"
+                  placeholder="VD: 1234567890"
+                  value={bankSettings.accountNo}
+                  onChange={(e) => setBankSettings({ accountNo: e.target.value })}
+                />
+              </label>
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-xs text-gray-600">Tên chủ tài khoản</span>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm"
+                  placeholder="VD: NGUYEN VAN A"
+                  value={bankSettings.accountName}
+                  onChange={(e) => setBankSettings({ accountName: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="flex-1 space-y-2">
+                <span className="text-xs text-gray-600">Ảnh QR thanh toán</span>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => qrRef.current?.click()}
+                    className="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">
+                    {bankSettings.qrImageDataUrl ? 'Thay ảnh QR' : 'Tải ảnh QR lên'}
+                  </button>
+                  {bankSettings.qrImageDataUrl && (
+                    <button type="button" onClick={() => setBankSettings({ qrImageDataUrl: '' })}
+                      className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-500 text-sm hover:bg-red-100">
+                      Xóa
+                    </button>
+                  )}
+                  <input ref={qrRef} type="file" accept="image/*" className="hidden" onChange={onPickQr} />
+                </div>
+                <p className="text-xs text-gray-400">PNG/JPG. Ảnh QR từ app ngân hàng của bạn.</p>
+              </div>
+              {bankSettings.qrImageDataUrl && (
+                <img src={bankSettings.qrImageDataUrl} alt="QR" className="w-24 h-24 object-contain rounded-lg border border-gray-200 shrink-0" />
+              )}
+            </div>
           </div>
-          <div className="border-t border-gray-200 pt-4">
+
+          <div className="border-t border-gray-200" />
+
+          {/* ── Backup ── */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900">Sao lưu dữ liệu</h3>
+            <p className="text-gray-600 text-xs">Dữ liệu lưu trong localStorage. Xuất JSON định kỳ để tránh mất khi xóa cache.</p>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={downloadJson}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold text-sm">
+                Xuất backup JSON
+              </button>
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm border border-slate-600">
+                Nhập backup JSON
+              </button>
+              <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onPickImport} />
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-1">
             <button type="button" onClick={() => setResetConfirm(true)}
-              className="px-4 py-2 rounded-lg bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30">
+              className="px-4 py-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 border border-red-200 text-sm">
               Xóa toàn bộ dữ liệu
             </button>
           </div>

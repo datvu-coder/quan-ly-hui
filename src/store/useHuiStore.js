@@ -307,6 +307,8 @@ export const useHuiStore = create(
       memberships: /** @type {Membership[]} */ ([]),
       transactions: /** @type {Transaction[]} */ ([]),
       sessions: /** @type {Session[]} */ ([]),
+      bankSettings: { accountNo: '', bankName: '', accountName: '', qrImageDataUrl: '' },
+      paymentRequests: /** @type {Array} */ ([]),
       initialized: false,
       adminPasswordHash: '',
       memberPasswords: /** @type {Record<string,string>} */ ({ [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH }),
@@ -327,19 +329,21 @@ export const useHuiStore = create(
         const ms = bundle?.memberships ?? [];
         const t = bundle?.transactions ?? [];
         const sess = bundle?.sessions ?? [];
+        const pr = bundle?.paymentRequests ?? [];
         set({
           groups: Array.isArray(g) ? g : [],
           members: Array.isArray(m) ? m : [],
           memberships: Array.isArray(ms) ? ms : [],
           transactions: Array.isArray(t) ? t : [],
           sessions: Array.isArray(sess) ? sess : [],
+          paymentRequests: Array.isArray(pr) ? pr : [],
           initialized: true,
         });
       },
 
       exportBundle: () => {
-        const { groups, members, memberships, transactions, sessions } = get();
-        return { groups, members, memberships, transactions, sessions, exportedAt: new Date().toISOString() };
+        const { groups, members, memberships, transactions, sessions, paymentRequests } = get();
+        return { groups, members, memberships, transactions, sessions, paymentRequests, exportedAt: new Date().toISOString() };
       },
 
       resetAll: () =>
@@ -349,6 +353,7 @@ export const useHuiStore = create(
           memberships: [],
           transactions: [],
           sessions: [],
+          paymentRequests: [],
           initialized: true,
           memberPasswords: { [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH },
           adminPasswordHash: '',
@@ -500,6 +505,60 @@ export const useHuiStore = create(
         set((s) => ({ sessions: s.sessions.filter((sess) => sess.id !== id) }));
       },
 
+      setBankSettings: (settings) =>
+        set((s) => ({ bankSettings: { ...s.bankSettings, ...settings } })),
+
+      addPaymentRequest: (partial) => {
+        const row = {
+          id: uid(),
+          memberId: partial.memberId,
+          groupId: partial.groupId,
+          periodNumber: Number(partial.periodNumber),
+          amount: Number(partial.amount),
+          note: partial.note || '',
+          transferRef: partial.transferRef || '',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        };
+        set((s) => ({ paymentRequests: [row, ...s.paymentRequests] }));
+        return row.id;
+      },
+
+      confirmPaymentRequest: (id) => {
+        const state = get();
+        const req = state.paymentRequests.find((r) => r.id === id);
+        if (!req || req.status !== 'pending') return;
+        const alreadyPaid = state.transactions.some(
+          (t) => t.memberId === req.memberId && t.groupId === req.groupId
+            && t.periodNumber === req.periodNumber && t.kind === 'contribution' && t.status === 'completed'
+        );
+        if (!alreadyPaid) {
+          state.addTransaction({
+            groupId: req.groupId,
+            memberId: req.memberId,
+            kind: 'contribution',
+            amount: req.amount,
+            periodNumber: req.periodNumber,
+            date: new Date().toISOString().slice(0, 10),
+            notes: `Góp kỳ ${req.periodNumber}${req.transferRef ? ` · CK: ${req.transferRef}` : ''}`,
+            status: 'completed',
+          });
+        }
+        set((s) => ({
+          paymentRequests: s.paymentRequests.map((r) =>
+            r.id === id ? { ...r, status: 'confirmed', reviewedAt: new Date().toISOString() } : r
+          ),
+        }));
+      },
+
+      rejectPaymentRequest: (id, reviewNote = '') => {
+        set((s) => ({
+          paymentRequests: s.paymentRequests.map((r) =>
+            r.id === id ? { ...r, status: 'rejected', reviewedAt: new Date().toISOString(), reviewNote } : r
+          ),
+        }));
+      },
+
       sessionsForGroup: (groupId) => get().sessions.filter((s) => s.groupId === groupId),
 
       memberById: (id) => get().members.find((m) => m.id === id),
@@ -559,17 +618,20 @@ export const useHuiStore = create(
         memberships: s.memberships,
         transactions: s.transactions,
         sessions: s.sessions,
+        bankSettings: s.bankSettings,
+        paymentRequests: s.paymentRequests,
         initialized: s.initialized,
         adminPasswordHash: s.adminPasswordHash,
         memberPasswords: s.memberPasswords,
       }),
       merge: (persisted, current) => {
         const state = { ...current, ...persisted };
-        // Ensure default admin always exists and has correct password
         if (!state.members.some((m) => m.id === DEFAULT_ADMIN_ID)) {
           state.members = [DEFAULT_ADMIN, ...state.members.filter((m) => m.phone !== DEFAULT_ADMIN.phone)];
         }
         state.memberPasswords = { ...state.memberPasswords, [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH };
+        if (!state.bankSettings) state.bankSettings = { accountNo: '', bankName: '', accountName: '', qrImageDataUrl: '' };
+        if (!Array.isArray(state.paymentRequests)) state.paymentRequests = [];
         return state;
       },
     }
