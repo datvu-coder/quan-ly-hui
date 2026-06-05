@@ -593,11 +593,84 @@ export default function KeuHuiPage() {
                       <p className="text-gray-500 mb-0.5">
                         {detailGroup.type === 'live'
                           ? 'Tiền nhận (bid cao nhất)'
-                          : `Ước tính kỳ ${detailSession.periodNumber}`}
+                          : 'Tiền nhận kỳ này'}
                       </p>
                       <p className="font-bold text-emerald-600">{formatVnd(net)}</p>
                     </div>
                   </div>
+                </div>
+              );
+            })()}
+
+            {/* All-periods withdrawal estimate */}
+            {(() => {
+              const memberIds = membersForGroup(detailGroup.id).map((m) => m.id);
+              const N = detailGroup.expectedMemberCount;
+              const closedMap = sessions
+                .filter((s) => s.groupId === detailGroup.id && s.status === 'closed')
+                .reduce((acc, s) => { acc[s.periodNumber] = s; return acc; }, {});
+
+              const rows = Array.from({ length: N }, (_, i) => {
+                const period = i + 1;
+                const gross = calcPeriodGross(detailGroup, sessions, memberIds, period);
+                const { commission, net } = calcSessionNet(detailGroup, 0, gross);
+                const closed = closedMap[period];
+                const isCurrent = period === detailSession.periodNumber;
+                return { period, gross, commission, net, closed, isCurrent };
+              });
+
+              return (
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-800">Ước tính tiền hốt theo từng kỳ</p>
+                    <span className="text-xs text-gray-400">Theo tình trạng dây hụi</span>
+                  </div>
+                  <div className="overflow-y-auto max-h-60">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
+                        <tr className="text-gray-500">
+                          <th className="text-left px-4 py-2 font-medium">Kỳ</th>
+                          <th className="text-right px-4 py-2 font-medium">Quỹ kỳ</th>
+                          <th className="text-right px-4 py-2 font-medium">Hoa hồng</th>
+                          <th className="text-right px-4 py-2 font-medium">Tiền nhận</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map(({ period, gross, commission, net, closed, isCurrent }) => (
+                          <tr
+                            key={period}
+                            className={`border-t border-gray-100 ${
+                              isCurrent ? 'bg-amber-50' : closed ? 'bg-green-50/60' : ''
+                            }`}
+                          >
+                            <td className={`px-4 py-2 font-medium ${
+                              isCurrent ? 'text-amber-700' : closed ? 'text-green-700' : 'text-gray-700'
+                            }`}>
+                              Kỳ {period}
+                              {isCurrent && <span className="ml-1.5 text-[10px] text-amber-500 font-normal">← đang xem</span>}
+                              {closed && !isCurrent && <span className="ml-1 text-green-500">✓</span>}
+                            </td>
+                            <td className="px-4 py-2 text-right text-gray-500">{formatVnd(gross)}</td>
+                            <td className="px-4 py-2 text-right text-red-400">−{formatVnd(commission)}</td>
+                            <td className={`px-4 py-2 text-right font-semibold ${
+                              closed ? 'text-green-700' : 'text-emerald-600'
+                            }`}>
+                              {closed
+                                ? formatVnd(closed.winnerNetAmount ?? net)
+                                : detailGroup.type === 'dead'
+                                ? formatVnd(net)
+                                : `~${formatVnd(net)}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {detailGroup.type === 'live' && (
+                    <p className="text-[10px] text-gray-400 px-4 py-2 border-t border-gray-100 bg-gray-50">
+                      * Hụi sống: tiền nhận ước tính chưa bao gồm lãi kêu thực tế
+                    </p>
+                  )}
                 </div>
               );
             })()}
