@@ -1,6 +1,10 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # Nhúng API key vào JS bundle khi build
+        VITE_API_SECRET: ${API_SECRET:-}
     ports:
       - "3000:3000"
     volumes:
@@ -9,6 +13,7 @@ services:
     environment:
       - PORT=3000
       - DATA_DIR=/data
+      - API_SECRET=${API_SECRET:-}
 
 volumes:
   hui_data:

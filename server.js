@@ -18,6 +18,12 @@ const DATA_DIR  = process.env.DATA_DIR  || './data';
 const DATA_FILE = path.join(DATA_DIR, 'hui.json');
 const DIST_DIR  = path.join(__dirname, 'dist');
 const PORT      = Number(process.env.PORT) || 3000;
+const API_SECRET = process.env.API_SECRET || '';
+
+if (!API_SECRET) {
+  console.warn('[HUI PRO] ⚠️  API_SECRET chưa được đặt — /api/data không được bảo vệ!');
+  console.warn('[HUI PRO]    Đặt API_SECRET trong .env để bảo mật dữ liệu.');
+}
 
 const MIME = {
   '.html':  'text/html; charset=utf-8',
@@ -67,12 +73,23 @@ function serveFile(res, filePath) {
   }
 }
 
+/** Returns true if request carries a valid API key (or no secret is configured). */
+function isAuthorized(req) {
+  if (!API_SECRET) return true;
+  return req.headers['x-api-key'] === API_SECRET;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost`);
 
   // ── API: GET /api/data ────────────────────────────────────────────────
   if (url.pathname === '/api/data' && req.method === 'GET') {
     res.setHeader('Content-Type', 'application/json');
+    if (!isAuthorized(req)) {
+      res.writeHead(401);
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
     try {
       if (fs.existsSync(DATA_FILE)) {
         res.writeHead(200);
@@ -91,6 +108,11 @@ const server = http.createServer(async (req, res) => {
   // ── API: POST /api/data ───────────────────────────────────────────────
   if (url.pathname === '/api/data' && req.method === 'POST') {
     res.setHeader('Content-Type', 'application/json');
+    if (!isAuthorized(req)) {
+      res.writeHead(401);
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
     try {
       const body = await readBody(req);
       JSON.parse(body); // validate: reject malformed JSON early

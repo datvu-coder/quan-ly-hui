@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
+ARG VITE_API_SECRET
+ENV VITE_API_SECRET=$VITE_API_SECRET
 RUN npm run build
 
 # Stage 2: Node.js server (serves static + API)
