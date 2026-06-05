@@ -315,6 +315,14 @@ export default function App() {
   const doLogin  = (key) => { sessionStorage.setItem('hui-authed', key); setAuthedAs(key); };
   const doLogout = () => { sessionStorage.removeItem('hui-authed'); setAuthedAs(null); };
 
+  // Wait for IndexedDB hydration before rendering (avoids flash of empty state)
+  const [hydrated, setHydrated] = useState(() => useHuiStore.persist.hasHydrated());
+  useEffect(() => {
+    if (!hydrated) {
+      return useHuiStore.persist.onFinishHydration(() => setHydrated(true));
+    }
+  }, [hydrated]);
+
   // Close more sheet on desktop resize
   useEffect(() => {
     const fn = () => { if (window.innerWidth >= 1024) setMoreOpen(false); };
@@ -350,6 +358,18 @@ export default function App() {
     e.target.value = '';
     setSettingsOpen(false);
   };
+
+  // Show loading spinner while IndexedDB finishes hydrating
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authedAs)            return <LoginPage onSuccess={doLogin} />;
   if (authedAs !== 'admin') return <MemberPortal memberId={authedAs} onLogout={doLogout} />;
@@ -522,7 +542,7 @@ export default function App() {
           {/* ── Backup ── */}
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-900">Sao lưu dữ liệu</h3>
-            <p className="text-gray-600 text-xs">Dữ liệu lưu trong localStorage. Xuất JSON định kỳ để tránh mất khi xóa cache.</p>
+            <p className="text-gray-600 text-xs">Dữ liệu lưu trong IndexedDB (có backup localStorage). Xuất JSON định kỳ để giữ bản sao an toàn.</p>
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={downloadJson}
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-semibold text-sm">

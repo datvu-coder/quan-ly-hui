@@ -1,6 +1,71 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+// ── Persistent storage: IndexedDB (primary) + localStorage (fallback + backup) ──
+// IndexedDB survives cache clears that wipe localStorage, has no 5MB limit.
+const _DB = 'hui-pro-db';
+const _ST = 'kv';
+let _dbPromise = null;
+function _openDB() {
+  if (!_dbPromise) {
+    _dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(_DB, 1);
+      req.onupgradeneeded = (e) => e.target.result.createObjectStore(_ST);
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => { _dbPromise = null; reject(e.target.error); };
+    });
+  }
+  return _dbPromise;
+}
+function _lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function _lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+const idbStorage = {
+  async getItem(key) {
+    try {
+      const db = await _openDB();
+      const val = await new Promise((res, rej) => {
+        const req = db.transaction(_ST, 'readonly').objectStore(_ST).get(key);
+        req.onsuccess = () => res(req.result ?? null);
+        req.onerror = () => rej(req.error);
+      });
+      if (val !== null) return val;
+      // First-run migration: pull existing data from localStorage
+      const ls = _lsGet(key);
+      if (ls) { this.setItem(key, ls).catch(() => {}); }
+      return ls;
+    } catch {
+      return _lsGet(key); // IDB unavailable (e.g. Firefox private mode) → localStorage
+    }
+  },
+  async setItem(key, value) {
+    try {
+      const db = await _openDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(_ST, 'readwrite');
+        tx.objectStore(_ST).put(value, key);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      _lsSet(key, value); // mirror to localStorage as a secondary backup
+    } catch {
+      _lsSet(key, value); // IDB write failed, localStorage only
+    }
+  },
+  async removeItem(key) {
+    try {
+      const db = await _openDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(_ST, 'readwrite');
+        tx.objectStore(_ST).delete(key);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+    } catch {}
+    try { localStorage.removeItem(key); } catch {}
+  },
+};
+
 const DEFAULT_ADMIN_ID = 'admin-00000000-0000-0000-0000-000000000001';
 const DEFAULT_ADMIN = {
   id: DEFAULT_ADMIN_ID,
@@ -613,7 +678,7 @@ export const useHuiStore = create(
     }),
     {
       name: 'hui-pro-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => idbStorage),
       partialize: (s) => ({
         groups: s.groups,
         members: s.members,
@@ -627,18 +692,33 @@ export const useHuiStore = create(
         memberPasswords: s.memberPasswords,
       }),
       merge: (persisted, current) => {
-        const state = { ...current, ...persisted };
+        const arr = (v, fallback = []) => (Array.isArray(v) ? v : fallback);
+        const state = {
+          ...current,
+          ...persisted,
+          // Guard arrays against corrupted/null values in stored data
+          groups:          arr(persisted?.groups),
+          members:         arr(persisted?.members, current.members),
+          memberships:     arr(persisted?.memberships),
+          transactions:    arr(persisted?.transactions),
+          sessions:        arr(persisted?.sessions),
+          paymentRequests: arr(persisted?.paymentRequests),
+        };
         if (!state.members.some((m) => m.id === DEFAULT_ADMIN_ID)) {
           state.members = [DEFAULT_ADMIN, ...state.members.filter((m) => m.phone !== DEFAULT_ADMIN.phone)];
         }
-        state.memberPasswords = { ...state.memberPasswords, [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH };
-        if (!state.bankSettings) state.bankSettings = { bankId: '', accountNo: '', accountName: '', qrImageDataUrl: '' };
+        state.memberPasswords = {
+          ...(typeof state.memberPasswords === 'object' && state.memberPasswords ? state.memberPasswords : {}),
+          [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH,
+        };
+        if (!state.bankSettings || typeof state.bankSettings !== 'object') {
+          state.bankSettings = { bankId: '', accountNo: '', accountName: '', qrImageDataUrl: '' };
+        }
         // Migrate old bankName → bankId
         if ('bankName' in state.bankSettings && !state.bankSettings.bankId) {
           state.bankSettings.bankId = '';
           delete state.bankSettings.bankName;
         }
-        if (!Array.isArray(state.paymentRequests)) state.paymentRequests = [];
         return state;
       },
     }
