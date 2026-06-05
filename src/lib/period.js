@@ -64,7 +64,8 @@ export function calcPeriodGross(group, sessions, memberIds, periodNumber) {
  *  Truyền grossOverride để dùng gross thực tế thay vì gross danh nghĩa.
  */
 export function calcSessionNet(group, bidRate = 0, grossOverride = null) {
-  const gross = grossOverride ?? (group.contributionAmount * group.expectedMemberCount);
+  // Winner does not contribute → default gross uses (N-1) contributors
+  const gross = grossOverride ?? (group.contributionAmount * (group.expectedMemberCount - 1));
   // Ưu tiên hoa hồng cố định, fallback về % cho dữ liệu cũ
   const commission = (group.ownerCommissionAmount > 0)
     ? group.ownerCommissionAmount

@@ -82,6 +82,13 @@ export default function KeuHuiPage() {
   const detailSession = useMemo(() => sessions.find((s) => s.id === detailId), [sessions, detailId]);
   const detailGroup = detailSession ? groupById(detailSession.groupId) : null;
 
+  // Actual gross for the current session period (accounts for two-tier dead/live rates)
+  const detailPeriodGross = useMemo(() => {
+    if (!detailGroup || !detailSession) return 0;
+    const mids = membersForGroup(detailGroup.id).map((m) => m.id);
+    return calcPeriodGross(detailGroup, sessions, mids, detailSession.periodNumber);
+  }, [detailGroup, detailSession, sessions, membersForGroup]);
+
   // Members who haven't won yet in this group (eligible to bid/win)
   const eligibleMembers = useMemo(() => {
     if (!detailGroup) return [];
@@ -172,7 +179,7 @@ export default function KeuHuiPage() {
     if (!detailSession || !detailGroup || !confirmWinnerId) return;
     const winnerBid = detailSession.bids.find((b) => b.memberId === confirmWinnerId);
     const winnerBidRate = detailGroup.type === 'dead' ? 0 : (winnerBid?.bidRate ?? 0);
-    const { gross, commission, interest, net } = calcSessionNet(detailGroup, winnerBidRate);
+    const { gross, commission, interest, net } = calcSessionNet(detailGroup, winnerBidRate, detailPeriodGross);
 
     const txId = addTransaction({
       groupId: detailGroup.id,
@@ -784,7 +791,7 @@ export default function KeuHuiPage() {
             {detailSession.status === 'closed' && detailGroup.type === 'live' && (() => {
               const rate = detailSession.winnerBidRate ?? 0;
               if (rate === 0) return null;
-              const { interest } = calcSessionNet(detailGroup, rate);
+              const { interest } = calcSessionNet(detailGroup, rate, detailPeriodGross);
               if (interest === 0) return null;
               const groupMembers = membersForGroup(detailGroup.id);
               const nonWinners = groupMembers.filter((m) => m.id !== detailSession.winnerId);
@@ -827,7 +834,7 @@ export default function KeuHuiPage() {
                 <div className="space-y-2">
                   {sortedBids.map((bid, idx) => {
                     const m = memberById(bid.memberId);
-                    const { net } = calcSessionNet(detailGroup, bid.bidRate);
+                    const { net } = calcSessionNet(detailGroup, bid.bidRate, detailPeriodGross);
                     const isWinner = detailSession.status === 'closed' && detailSession.winnerId === bid.memberId;
                     return (
                       <div
@@ -1084,7 +1091,7 @@ export default function KeuHuiPage() {
             {confirmWinnerId && (() => {
               const bid = detailSession.bids.find((b) => b.memberId === confirmWinnerId);
               const rate = bid?.bidRate ?? 0;
-              const { gross, commission, interest, net } = calcSessionNet(detailGroup, rate);
+              const { gross, commission, interest, net } = calcSessionNet(detailGroup, rate, detailPeriodGross);
               return (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-1 text-xs">
                   <p className="font-medium text-amber-700">Tổng kết</p>
