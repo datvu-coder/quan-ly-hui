@@ -41,7 +41,11 @@ export function periodDueDate(startDate, cycle, period) {
  */
 export function calcPeriodGross(group, sessions, memberIds, periodNumber) {
   const dead = group.contributionAmountDead || 0;
-  if (!dead) return group.contributionAmount * memberIds.length;
+
+  // Winner (always a live member) does not contribute in the period they win.
+  if (!dead) {
+    return (memberIds.length - 1) * group.contributionAmount;
+  }
 
   const deadIds = new Set(
     sessions
@@ -50,7 +54,8 @@ export function calcPeriodGross(group, sessions, memberIds, periodNumber) {
   );
   const deadCount = memberIds.filter((id) => deadIds.has(id)).length;
   const liveCount = memberIds.length - deadCount;
-  return deadCount * dead + liveCount * group.contributionAmount;
+  // Subtract winner's contribution (live rate) since they don't pay in their winning period
+  return (liveCount - 1) * group.contributionAmount + deadCount * dead;
 }
 
 /** Tính tiền hốt trong phiên kêu hụi:

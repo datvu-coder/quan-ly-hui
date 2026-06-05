@@ -2,7 +2,8 @@
  * Hụi chết: tiền nhận kỳ M = quỹ kỳ đó (A × N) − hoa hồng cố định.
  */
 export function estimateDeadWithdrawal(contributionPerPeriod, memberCount, periodM, commissionAmount) {
-  const gross = contributionPerPeriod * memberCount;
+  // Winner does not contribute in their winning period → N-1 contributors
+  const gross = contributionPerPeriod * (memberCount - 1);
   const commission = commissionAmount || 0;
   return {
     gross,
@@ -24,7 +25,8 @@ export function estimateLiveWithdrawal(
   annualInterestPercent,
   commissionAmount
 ) {
-  const gross = contributionPerPeriod * memberCount;
+  // Winner does not contribute in their winning period → N-1 contributors
+  const gross = contributionPerPeriod * (memberCount - 1);
   const commission = commissionAmount || 0;
   const monthlyRate = annualInterestPercent / 100 / 12;
   const N = memberCount;
