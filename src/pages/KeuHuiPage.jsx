@@ -61,7 +61,8 @@ export default function KeuHuiPage() {
     },
   });
 
-  const watchGroup = createForm.watch('groupId');
+  const watchGroup  = createForm.watch('groupId');
+  const watchPeriod = createForm.watch('periodNumber');
 
   // Auto-fill period number when group changes
   const onGroupChange = (gid) => {
@@ -418,7 +419,7 @@ export default function KeuHuiPage() {
                 </div>
                 {g.type === 'dead' && (
                   <div className="flex justify-between text-gray-900 font-semibold border-t border-amber-200 pt-1">
-                    <span>Tiền hốt (hụi chết)</span>
+                    <span>Ước tính kỳ {watchPeriod}</span>
                     <span>{formatVnd(net)}</span>
                   </div>
                 )}
@@ -571,7 +572,9 @@ export default function KeuHuiPage() {
                   )}
                   <div>
                     <p className="text-gray-500 mb-0.5">
-                      {detailGroup.type === 'live' ? 'Tiền nhận (bid cao nhất)' : 'Tiền nhận'}
+                      {detailGroup.type === 'live'
+                        ? 'Tiền nhận (bid cao nhất)'
+                        : `Ước tính kỳ ${detailSession.periodNumber}`}
                     </p>
                     <p className="font-bold text-emerald-600">{formatVnd(net)}</p>
                   </div>
