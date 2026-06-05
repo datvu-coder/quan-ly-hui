@@ -12,7 +12,7 @@ import KeuHuiPage       from './pages/KeuHuiPage.jsx';
 import ReportsPage      from './pages/ReportsPage.jsx';
 import { Modal }        from './components/Modal.jsx';
 import { useHuiStore }  from './store/useHuiStore.js';
-import { BANKS }        from './lib/banks.js';
+import { BANKS, buildVietQrUrl } from './lib/banks.js';
 import LoginPage        from './pages/LoginPage.jsx';
 import MemberPortal     from './pages/MemberPortal.jsx';
 
@@ -483,6 +483,39 @@ export default function App() {
               )}
             </div>
           </div>
+
+          {/* ── QR Preview ── */}
+          {(() => {
+            const previewUrl = buildVietQrUrl({
+              bankId:      bankSettings.bankId,
+              accountNo:   bankSettings.accountNo,
+              accountName: bankSettings.accountName,
+              amount:      100000,
+              addInfo:     'Gop hui ky 1',
+            });
+            if (!previewUrl) return null;
+            return (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+                <p className="text-xs font-semibold text-amber-800">Xem trước QR (mẫu · 100.000đ · kỳ 1)</p>
+                <div className="flex gap-4 items-start">
+                  <img
+                    src={previewUrl}
+                    alt="Preview QR"
+                    className="w-full max-w-[180px] object-contain rounded-lg border border-amber-200"
+                  />
+                  <div className="space-y-1 text-xs text-gray-600 pt-1">
+                    <p>Thành viên quét QR này → app ngân hàng tự điền:</p>
+                    <ul className="space-y-1 mt-1">
+                      <li>• Số tài khoản</li>
+                      <li>• Số tiền đóng hụi</li>
+                      <li>• Nội dung chuyển khoản</li>
+                    </ul>
+                    <p className="text-amber-700 mt-2">QR thực tế sẽ điền đúng số tiền và kỳ của từng dây hụi.</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="border-t border-gray-200" />
 
