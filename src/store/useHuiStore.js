@@ -371,6 +371,7 @@ export const useHuiStore = create(
           expectedMemberCount: Number(partial.expectedMemberCount) || 1,
           contributionAmount: Number(partial.contributionAmount) || 0,
           contributionAmountDead: Number(partial.contributionAmountDead) || 0,
+          ownerCommissionAmount: Number(partial.ownerCommissionAmount) || 0,
           cycle: partial.cycle || 'month',
           startDate: partial.startDate || new Date().toISOString().slice(0, 10),
           type: partial.type || 'dead',

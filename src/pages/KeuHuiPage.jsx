@@ -423,7 +423,7 @@ export default function KeuHuiPage() {
                   <span className="font-medium">{formatVnd(gross)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Hoa hồng ({g.ownerCommissionPercent}%)</span>
+                  <span>Hoa hồng / kỳ</span>
                   <span>{formatVnd(commission)}</span>
                 </div>
                 {g.type === 'dead' && (
@@ -578,7 +578,7 @@ export default function KeuHuiPage() {
                       <p className="font-semibold text-gray-900">{formatVnd(gross)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 mb-0.5">Hoa hồng ({detailGroup.ownerCommissionPercent}%)</p>
+                      <p className="text-gray-500 mb-0.5">Hoa hồng</p>
                       <p className="font-semibold text-red-500">−{formatVnd(commission)}</p>
                     </div>
                     {detailGroup.type === 'live' && (

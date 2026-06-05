@@ -19,7 +19,7 @@ const groupSchema = z.object({
   startDate: z.string(),
   type: z.enum(['dead', 'live']),
   interestRateAnnual: z.coerce.number().min(0).max(50, 'Tối đa 50%/năm'),
-  ownerCommissionPercent: z.coerce.number().min(0).max(30, 'Tối đa 30%'),
+  ownerCommissionAmount: z.coerce.number().min(0),
   notes: z.string().optional(),
 });
 
@@ -58,7 +58,7 @@ export default function GroupsPage() {
       startDate: new Date().toISOString().slice(0, 10),
       type: 'dead',
       interestRateAnnual: 0,
-      ownerCommissionPercent: 2,
+      ownerCommissionAmount: 0,
       notes: '',
     },
   });
@@ -75,7 +75,7 @@ export default function GroupsPage() {
       startDate: new Date().toISOString().slice(0, 10),
       type: 'dead',
       interestRateAnnual: 0,
-      ownerCommissionPercent: 2,
+      ownerCommissionAmount: 0,
       notes: '',
     });
     setModalOpen(true);
@@ -92,23 +92,22 @@ export default function GroupsPage() {
       startDate: g.startDate,
       type: g.type,
       interestRateAnnual: g.interestRateAnnual,
-      ownerCommissionPercent: g.ownerCommissionPercent,
+      ownerCommissionAmount: g.ownerCommissionAmount ?? 0,
       notes: g.notes || '',
     });
     setModalOpen(true);
   };
 
   const onSubmit = (values) => {
+    const payload = {
+      ...values,
+      interestRateAnnual: values.type === 'dead' ? 0 : values.interestRateAnnual,
+      ownerCommissionPercent: 0,
+    };
     if (editingId) {
-      updateGroup(editingId, {
-        ...values,
-        interestRateAnnual: values.type === 'dead' ? 0 : values.interestRateAnnual,
-      });
+      updateGroup(editingId, payload);
     } else {
-      addGroup({
-        ...values,
-        interestRateAnnual: values.type === 'dead' ? 0 : values.interestRateAnnual,
-      });
+      addGroup(payload);
     }
     setModalOpen(false);
   };
@@ -121,11 +120,12 @@ export default function GroupsPage() {
     const N = detailGroup.expectedMemberCount;
     const A = detailGroup.contributionAmount;
     const M = Math.min(N, Math.max(1, Math.floor(N / 2)));
+    const commission = detailGroup.ownerCommissionAmount ?? 0;
     if (detailGroup.type === 'dead') {
-      const e = estimateDeadWithdrawal(A, N, M, detailGroup.ownerCommissionPercent);
+      const e = estimateDeadWithdrawal(A, N, M, commission);
       return { ...e, label: `Ước tính kỳ ${M} (hụi chết)` };
     }
-    const e = estimateLiveWithdrawal(A, N, M, detailGroup.interestRateAnnual, detailGroup.ownerCommissionPercent);
+    const e = estimateLiveWithdrawal(A, N, M, detailGroup.interestRateAnnual, commission);
     return { ...e, label: `Ước tính kỳ ${M} (hụi sống — tham khảo)` };
   }, [detailGroup]);
 
@@ -376,15 +376,17 @@ export default function GroupsPage() {
               ) : null}
             </label>
             <label className="block space-y-1">
-              <span className="text-xs text-gray-600">Hoa hồng chủ hụi (% trên quỹ kỳ hốt)</span>
+              <span className="text-xs text-gray-600">Hoa hồng / kỳ hốt (₫)</span>
               <input
                 type="number"
-                step="0.1"
+                min={0}
+                step={1000}
+                placeholder="0 = không thu hoa hồng"
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
-                {...form.register('ownerCommissionPercent')}
+                {...form.register('ownerCommissionAmount')}
               />
-              {form.formState.errors.ownerCommissionPercent ? (
-                <span className="text-xs text-red-400">{form.formState.errors.ownerCommissionPercent.message}</span>
+              {form.formState.errors.ownerCommissionAmount ? (
+                <span className="text-xs text-red-400">{form.formState.errors.ownerCommissionAmount.message}</span>
               ) : null}
             </label>
           </div>

@@ -60,7 +60,10 @@ export function calcPeriodGross(group, sessions, memberIds, periodNumber) {
  */
 export function calcSessionNet(group, bidRate = 0, grossOverride = null) {
   const gross = grossOverride ?? (group.contributionAmount * group.expectedMemberCount);
-  const commission = gross * (group.ownerCommissionPercent / 100);
+  // Ưu tiên hoa hồng cố định, fallback về % cho dữ liệu cũ
+  const commission = (group.ownerCommissionAmount > 0)
+    ? group.ownerCommissionAmount
+    : Math.round(gross * ((group.ownerCommissionPercent || 0) / 100));
   const interest = group.type === 'live' ? gross * (bidRate / 100) : 0;
   return {
     gross,
