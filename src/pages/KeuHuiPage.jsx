@@ -7,7 +7,7 @@ import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import LuckyWheel from '../components/LuckyWheel.jsx';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
-import { currentPeriodNumber, calcSessionNet } from '../lib/period.js';
+import { currentPeriodNumber, calcSessionNet, calcPeriodGross } from '../lib/period.js';
 
 const createSchema = z.object({
   groupId: z.string().min(1, 'Chọn dây hụi'),
@@ -405,12 +405,21 @@ export default function KeuHuiPage() {
           {watchGroup && (() => {
             const g = groups.find((x) => x.id === watchGroup);
             if (!g) return null;
-            const { gross, commission, net } = calcSessionNet(g, 0);
+            const memberIds = membersForGroup(g.id).map((m) => m.id);
+            const gross = calcPeriodGross(g, sessions, memberIds, Number(watchPeriod));
+            const { commission, net } = calcSessionNet(g, 0, gross);
+            const hasTwoTier = g.contributionAmountDead > 0;
             return (
               <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-gray-600 space-y-1">
                 <p className="font-medium text-amber-700">Thông tin dây ({g.expectedMemberCount} người)</p>
+                {hasTwoTier && (
+                  <div className="flex justify-between text-amber-700">
+                    <span>Góp chưa hốt / đã hốt</span>
+                    <span className="font-medium">{formatVnd(g.contributionAmount)} / {formatVnd(g.contributionAmountDead)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span>Quỹ kỳ (gross)</span>
+                  <span>Quỹ kỳ {watchPeriod} (gross)</span>
                   <span className="font-medium">{formatVnd(gross)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -551,32 +560,43 @@ export default function KeuHuiPage() {
             {/* Gross calculation */}
             {(() => {
               const topRate = sortedBids[0]?.bidRate ?? 0;
-              const { gross, commission, interest, net } = calcSessionNet(detailGroup, topRate);
+              const memberIds = membersForGroup(detailGroup.id).map((m) => m.id);
+              const gross = calcPeriodGross(detailGroup, sessions, memberIds, detailSession.periodNumber);
+              const { commission, interest, net } = calcSessionNet(detailGroup, topRate, gross);
+              const hasTwoTier = detailGroup.contributionAmountDead > 0;
               return (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <p className="text-gray-500 mb-0.5">Quỹ kỳ (gross)</p>
-                    <p className="font-semibold text-gray-900">{formatVnd(gross)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 mb-0.5">Hoa hồng ({detailGroup.ownerCommissionPercent}%)</p>
-                    <p className="font-semibold text-red-500">−{formatVnd(commission)}</p>
-                  </div>
-                  {detailGroup.type === 'live' && (
-                    <div>
-                      <p className="text-gray-500 mb-0.5">
-                        Lãi kêu{sortedBids[0] ? ` (${topRate}%)` : ''}
-                      </p>
-                      <p className="font-semibold text-orange-500">−{formatVnd(interest)}</p>
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 space-y-2 text-xs">
+                  {hasTwoTier && (
+                    <div className="flex justify-between text-amber-700 font-medium pb-1.5 border-b border-gray-200">
+                      <span>Góp chưa hốt / đã hốt</span>
+                      <span>{formatVnd(detailGroup.contributionAmount)} / {formatVnd(detailGroup.contributionAmountDead)}</span>
                     </div>
                   )}
-                  <div>
-                    <p className="text-gray-500 mb-0.5">
-                      {detailGroup.type === 'live'
-                        ? 'Tiền nhận (bid cao nhất)'
-                        : `Ước tính kỳ ${detailSession.periodNumber}`}
-                    </p>
-                    <p className="font-bold text-emerald-600">{formatVnd(net)}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <p className="text-gray-500 mb-0.5">Quỹ kỳ (gross)</p>
+                      <p className="font-semibold text-gray-900">{formatVnd(gross)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 mb-0.5">Hoa hồng ({detailGroup.ownerCommissionPercent}%)</p>
+                      <p className="font-semibold text-red-500">−{formatVnd(commission)}</p>
+                    </div>
+                    {detailGroup.type === 'live' && (
+                      <div>
+                        <p className="text-gray-500 mb-0.5">
+                          Lãi kêu{sortedBids[0] ? ` (${topRate}%)` : ''}
+                        </p>
+                        <p className="font-semibold text-orange-500">−{formatVnd(interest)}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-gray-500 mb-0.5">
+                        {detailGroup.type === 'live'
+                          ? 'Tiền nhận (bid cao nhất)'
+                          : `Ước tính kỳ ${detailSession.periodNumber}`}
+                      </p>
+                      <p className="font-bold text-emerald-600">{formatVnd(net)}</p>
+                    </div>
                   </div>
                 </div>
               );

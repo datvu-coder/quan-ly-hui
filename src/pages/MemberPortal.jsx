@@ -204,7 +204,7 @@ function BidPanel({ group, session, memberId }) {
 }
 
 // ── Payment / QR section ────────────────────────────────────────────────────
-function PaymentSection({ group, session, memberId }) {
+function PaymentSection({ group, session, memberId, iWonPeriod }) {
   const bankSettings      = useHuiStore((s) => s.bankSettings);
   const paymentRequests   = useHuiStore((s) => s.paymentRequests);
   const addPaymentRequest = useHuiStore((s) => s.addPaymentRequest);
@@ -219,13 +219,19 @@ function PaymentSection({ group, session, memberId }) {
   const [copied, setCopied]       = useState(false);
   const [qrError, setQrError]     = useState(false);
 
+  // Số tiền đóng phụ thuộc vào trạng thái: đã hốt → mức chết, chưa hốt → mức sống
+  const isDeadMember = iWonPeriod != null;
+  const amountToPay = isDeadMember && group.contributionAmountDead
+    ? group.contributionAmountDead
+    : group.contributionAmount;
+
   // Build dynamic VietQR URL (preferred) or fall back to uploaded image
   const addInfo  = `Gop hui ky ${session.periodNumber}`;
   const dynamicQr = buildVietQrUrl({
     bankId:      bankSettings.bankId,
     accountNo:   bankSettings.accountNo,
     accountName: bankSettings.accountName,
-    amount:      group.contributionAmount,
+    amount:      amountToPay,
     addInfo,
   });
   const qrSrc = dynamicQr ?? (bankSettings.qrImageDataUrl || null);
@@ -245,7 +251,7 @@ function PaymentSection({ group, session, memberId }) {
       memberId,
       groupId: group.id,
       periodNumber: session.periodNumber,
-      amount: group.contributionAmount,
+      amount: amountToPay,
       note,
       transferRef,
     });
@@ -330,8 +336,10 @@ function PaymentSection({ group, session, memberId }) {
           </div>
         )}
         <div className="flex items-center justify-between pt-1 border-t border-amber-200">
-          <p className="text-xs text-amber-700">Số tiền · Kỳ {session.periodNumber}</p>
-          <p className="text-sm font-bold text-amber-700">{formatVnd(group.contributionAmount)}</p>
+          <p className="text-xs text-amber-700">
+            {isDeadMember && group.contributionAmountDead ? 'Góp (đã hốt)' : 'Số tiền'} · Kỳ {session.periodNumber}
+          </p>
+          <p className="text-sm font-bold text-amber-700">{formatVnd(amountToPay)}</p>
         </div>
         {dynamicQr && (
           <p className="text-[10px] text-amber-600">Nội dung CK đã điền sẵn trong QR</p>
@@ -563,7 +571,7 @@ export default function MemberPortal({ memberId, onLogout }) {
 
                   {/* QR / Payment section — only when unpaid */}
                   {openSession && !myPaidThisPeriod && (
-                    <PaymentSection group={g} session={openSession} memberId={memberId} />
+                    <PaymentSection group={g} session={openSession} memberId={memberId} iWonPeriod={iWonPeriod} />
                   )}
 
                   {/* Win status */}

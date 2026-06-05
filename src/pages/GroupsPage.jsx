@@ -14,6 +14,7 @@ const groupSchema = z.object({
   name: z.string().min(2, 'Tối thiểu 2 ký tự'),
   expectedMemberCount: z.coerce.number().min(1, 'Tối thiểu 1').max(500, 'Tối đa 500'),
   contributionAmount: z.coerce.number().min(1000, 'Tối thiểu 1.000 ₫'),
+  contributionAmountDead: z.coerce.number().min(0),
   cycle: z.enum(['day', 'week', 'month']),
   startDate: z.string(),
   type: z.enum(['dead', 'live']),
@@ -52,6 +53,7 @@ export default function GroupsPage() {
       name: '',
       expectedMemberCount: 10,
       contributionAmount: 1_000_000,
+      contributionAmountDead: 0,
       cycle: 'month',
       startDate: new Date().toISOString().slice(0, 10),
       type: 'dead',
@@ -60,6 +62,7 @@ export default function GroupsPage() {
       notes: '',
     },
   });
+  const watchType = form.watch('type');
 
   const openCreate = () => {
     setEditingId(null);
@@ -67,6 +70,7 @@ export default function GroupsPage() {
       name: '',
       expectedMemberCount: 10,
       contributionAmount: 1_000_000,
+      contributionAmountDead: 0,
       cycle: 'month',
       startDate: new Date().toISOString().slice(0, 10),
       type: 'dead',
@@ -83,6 +87,7 @@ export default function GroupsPage() {
       name: g.name,
       expectedMemberCount: g.expectedMemberCount,
       contributionAmount: g.contributionAmount,
+      contributionAmountDead: g.contributionAmountDead ?? 0,
       cycle: g.cycle,
       startDate: g.startDate,
       type: g.type,
@@ -189,8 +194,13 @@ export default function GroupsPage() {
               <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 rounded-lg bg-gray-50">
-                    <p className="text-xs text-gray-500 mb-1">Góp/kỳ</p>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {group.contributionAmountDead ? 'Góp/kỳ (chưa hốt)' : 'Góp/kỳ'}
+                    </p>
                     <p className="text-lg font-bold text-gray-900">{formatVnd(group.contributionAmount)}</p>
+                    {!!group.contributionAmountDead && (
+                      <p className="text-xs text-amber-600 mt-0.5">Sau hốt: {formatVnd(group.contributionAmountDead)}</p>
+                    )}
                   </div>
                   <div className="p-3 rounded-lg bg-amber-50">
                     <p className="text-xs text-gray-500 mb-1">Đã góp (ghi nhận)</p>
@@ -298,7 +308,9 @@ export default function GroupsPage() {
               ) : null}
             </label>
             <label className="block space-y-1">
-              <span className="text-xs text-gray-600">Tiền góp / người / kỳ (₫)</span>
+              <span className="text-xs text-gray-600">
+                Tiền góp / kỳ {watchType === 'dead' ? '(chưa hốt) ' : ''}(₫)
+              </span>
               <input
                 type="number"
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
@@ -308,6 +320,19 @@ export default function GroupsPage() {
                 <span className="text-xs text-red-400">{form.formState.errors.contributionAmount.message}</span>
               ) : null}
             </label>
+            {watchType === 'dead' && (
+              <label className="block space-y-1">
+                <span className="text-xs text-gray-600">Tiền góp / kỳ (sau khi hốt) (₫)</span>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="0 = giống mức chưa hốt"
+                  className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
+                  {...form.register('contributionAmountDead')}
+                />
+                <span className="text-[10px] text-gray-400">Để trống hoặc 0 nếu tất cả đóng cùng mức.</span>
+              </label>
+            )}
             <label className="block space-y-1">
               <span className="text-xs text-gray-600">Chu kỳ</span>
               <select
@@ -393,13 +418,22 @@ export default function GroupsPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-gray-500 text-xs mb-1">Góp mỗi kỳ</p>
+                <p className="text-gray-500 text-xs mb-1">
+                  {detailGroup.contributionAmountDead ? 'Góp/kỳ (chưa hốt)' : 'Góp mỗi kỳ'}
+                </p>
                 <p className="text-gray-900 font-semibold">{formatVnd(detailGroup.contributionAmount)}</p>
               </div>
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-gray-500 text-xs mb-1">Chu kỳ</p>
-                <p className="text-gray-900 font-semibold">{cycleLabel(detailGroup.cycle)}</p>
-              </div>
+              {detailGroup.contributionAmountDead ? (
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-amber-600 text-xs mb-1">Góp/kỳ (sau khi hốt)</p>
+                  <p className="text-gray-900 font-semibold">{formatVnd(detailGroup.contributionAmountDead)}</p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                  <p className="text-gray-500 text-xs mb-1">Chu kỳ</p>
+                  <p className="text-gray-900 font-semibold">{cycleLabel(detailGroup.cycle)}</p>
+                </div>
+              )}
             </div>
 
             {preview ? (

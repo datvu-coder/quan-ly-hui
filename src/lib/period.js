@@ -33,12 +33,33 @@ export function periodDueDate(startDate, cycle, period) {
   return d;
 }
 
+/**
+ * Tính gross thực tế của một kỳ khi dây có hai mức đóng:
+ * - Người đã hốt (chết): đóng contributionAmountDead
+ * - Người chưa hốt (sống): đóng contributionAmount
+ * Nếu contributionAmountDead = 0: tất cả đóng cùng mức.
+ */
+export function calcPeriodGross(group, sessions, memberIds, periodNumber) {
+  const dead = group.contributionAmountDead || 0;
+  if (!dead) return group.contributionAmount * memberIds.length;
+
+  const deadIds = new Set(
+    sessions
+      .filter((s) => s.groupId === group.id && s.status === 'closed' && s.winnerId && s.periodNumber < periodNumber)
+      .map((s) => s.winnerId)
+  );
+  const deadCount = memberIds.filter((id) => deadIds.has(id)).length;
+  const liveCount = memberIds.length - deadCount;
+  return deadCount * dead + liveCount * group.contributionAmount;
+}
+
 /** Tính tiền hốt trong phiên kêu hụi:
  *  - hụi chết: gross - commission
  *  - hụi sống: gross - commission - interest (gross × bidRate%)
+ *  Truyền grossOverride để dùng gross thực tế thay vì gross danh nghĩa.
  */
-export function calcSessionNet(group, bidRate = 0) {
-  const gross = group.contributionAmount * group.expectedMemberCount;
+export function calcSessionNet(group, bidRate = 0, grossOverride = null) {
+  const gross = grossOverride ?? (group.contributionAmount * group.expectedMemberCount);
   const commission = gross * (group.ownerCommissionPercent / 100);
   const interest = group.type === 'live' ? gross * (bidRate / 100) : 0;
   return {
