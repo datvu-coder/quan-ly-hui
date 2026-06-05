@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, Users, DollarSign, Bell, Settings,
   LogOut, BarChart3, Database, Hammer, ChevronLeft,
@@ -13,6 +13,7 @@ import ReportsPage      from './pages/ReportsPage.jsx';
 import { Modal }        from './components/Modal.jsx';
 import { useHuiStore }  from './store/useHuiStore.js';
 import { BANKS, buildVietQrUrl } from './lib/banks.js';
+import { fetchServerData, pushToServer } from './lib/api.js';
 import LoginPage        from './pages/LoginPage.jsx';
 import MemberPortal     from './pages/MemberPortal.jsx';
 
@@ -315,13 +316,63 @@ export default function App() {
   const doLogin  = (key) => { sessionStorage.setItem('hui-authed', key); setAuthedAs(key); };
   const doLogout = () => { sessionStorage.removeItem('hui-authed'); setAuthedAs(null); };
 
-  // Wait for IndexedDB hydration before rendering (avoids flash of empty state)
+  // ── Sync status: 'idle' | 'saving' | 'synced' | 'offline' ───────────
+  const [syncStatus, setSyncStatus] = useState('idle');
+  const syncClearRef = useRef(null);
+
+  const markSynced = useCallback(() => {
+    setSyncStatus('synced');
+    clearTimeout(syncClearRef.current);
+    syncClearRef.current = setTimeout(() => setSyncStatus('idle'), 3000);
+  }, []);
+
+  // ── IDB hydration ─────────────────────────────────────────────────────
   const [hydrated, setHydrated] = useState(() => useHuiStore.persist.hasHydrated());
   useEffect(() => {
     if (!hydrated) {
       return useHuiStore.persist.onFinishHydration(() => setHydrated(true));
     }
   }, [hydrated]);
+
+  // ── On hydration: fetch server data (server = source of truth) ────────
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+    (async () => {
+      const serverData = await fetchServerData();
+      if (cancelled) return;
+      if (serverData && serverData.groups) {
+        // Server has data → import (overrides local IDB cache)
+        useHuiStore.getState().importBundle(serverData);
+      } else if (serverData === null) {
+        // Server reachable but empty → push local data to initialise server
+        const local = useHuiStore.getState().exportBundle();
+        if (local.groups?.length > 0) {
+          const ok = await pushToServer(local);
+          if (!cancelled && ok) markSynced();
+        }
+      }
+      // serverData === undefined → server unreachable, keep IDB data, show offline
+      if (!cancelled && serverData === undefined) setSyncStatus('offline');
+    })();
+    return () => { cancelled = true; };
+  }, [hydrated, markSynced]);
+
+  // ── Auto-save: debounced push on every store change ───────────────────
+  useEffect(() => {
+    let saveTimer;
+    const unsub = useHuiStore.subscribe((state) => {
+      if (!state.initialized) return;
+      clearTimeout(saveTimer);
+      setSyncStatus('saving');
+      saveTimer = setTimeout(async () => {
+        const bundle = useHuiStore.getState().exportBundle();
+        const ok = await pushToServer(bundle);
+        if (ok) markSynced(); else setSyncStatus('offline');
+      }, 1500);
+    });
+    return () => { unsub(); clearTimeout(saveTimer); };
+  }, [markSynced]);
 
   // Close more sheet on desktop resize
   useEffect(() => {
@@ -577,6 +628,22 @@ export default function App() {
       >
         <p className="text-sm text-gray-600">Xóa dây hụi, thành viên và giao dịch trên máy này. Nên xuất backup trước khi thử.</p>
       </Modal>
+
+      {/* ── Cloud sync status badge ─────────────────────────────────────── */}
+      {syncStatus !== 'idle' && (
+        <div className={`fixed bottom-20 lg:bottom-4 right-4 z-50 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full shadow border transition-all ${
+          syncStatus === 'saving'  ? 'bg-amber-50 border-amber-200 text-amber-700' :
+          syncStatus === 'synced'  ? 'bg-green-50  border-green-200  text-green-700'  :
+                                     'bg-red-50   border-red-200   text-red-600'
+        }`}>
+          {syncStatus === 'saving' && (
+            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          )}
+          {syncStatus === 'saving'  ? 'Đang lưu...' :
+           syncStatus === 'synced'  ? '☁ Đã lưu'    :
+                                      '⚠ Offline — chưa lưu được'}
+        </div>
+      )}
     </>
   );
 }

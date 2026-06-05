@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - hui_data:/data   # dữ liệu lưu vĩnh viễn, không mất khi rebuild
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+
+volumes:
+  hui_data:
+    driver: local

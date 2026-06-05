@@ -1,4 +1,4 @@
-# Stage 1: Build
+# Stage 1: Build frontend
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
@@ -6,9 +6,12 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve with nginx
-FROM nginx:stable-alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Stage 2: Node.js server (serves static + API)
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY server.js .
+RUN mkdir -p /data
+ENV DATA_DIR=/data
+EXPOSE 3000
+CMD ["node", "server.js"]
