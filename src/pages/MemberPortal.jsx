@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
+import { bankDisplayName, buildVietQrUrl } from '../lib/banks.js';
 import { calcSessionNet } from '../lib/period.js';
 
 const statusLabel = { active: 'Đang hoạt động', warning: 'Cần chú ý', debt: 'Đang nợ', left: 'Đã rời' };
@@ -204,8 +205,8 @@ function BidPanel({ group, session, memberId }) {
 
 // ── Payment / QR section ────────────────────────────────────────────────────
 function PaymentSection({ group, session, memberId }) {
-  const bankSettings     = useHuiStore((s) => s.bankSettings);
-  const paymentRequests  = useHuiStore((s) => s.paymentRequests);
+  const bankSettings      = useHuiStore((s) => s.bankSettings);
+  const paymentRequests   = useHuiStore((s) => s.paymentRequests);
   const addPaymentRequest = useHuiStore((s) => s.addPaymentRequest);
 
   const existingReq = paymentRequests.find(
@@ -216,8 +217,20 @@ function PaymentSection({ group, session, memberId }) {
   const [note, setNote]           = useState('');
   const [transferRef, setTranRef] = useState('');
   const [copied, setCopied]       = useState(false);
+  const [qrError, setQrError]     = useState(false);
 
-  const hasBankInfo = bankSettings.accountNo || bankSettings.qrImageDataUrl;
+  // Build dynamic VietQR URL (preferred) or fall back to uploaded image
+  const addInfo  = `Gop hui ky ${session.periodNumber}`;
+  const dynamicQr = buildVietQrUrl({
+    bankId:      bankSettings.bankId,
+    accountNo:   bankSettings.accountNo,
+    accountName: bankSettings.accountName,
+    amount:      group.contributionAmount,
+    addInfo,
+  });
+  const qrSrc = dynamicQr ?? (bankSettings.qrImageDataUrl || null);
+
+  const hasBankInfo = dynamicQr || bankSettings.qrImageDataUrl || bankSettings.accountNo;
   if (!hasBankInfo && !existingReq) return null;
 
   const doCopy = () => {
@@ -258,58 +271,71 @@ function PaymentSection({ group, session, memberId }) {
 
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
-      {/* Bank info + QR */}
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <QrCode size={15} className="text-amber-600" />
-          <p className="text-sm font-semibold text-amber-800">Thanh toán</p>
-        </div>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+        <QrCode size={15} className="text-amber-600" />
+        <p className="text-sm font-semibold text-amber-800">Thanh toán</p>
+        {dynamicQr && (
+          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 font-semibold">VietQR</span>
+        )}
+      </div>
 
-        {existingReq?.status === 'rejected' && (
-          <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-            <XCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-semibold text-red-700">Lệnh bị từ chối</p>
-              {existingReq.reviewNote && <p className="text-xs text-red-600">{existingReq.reviewNote}</p>}
-              <p className="text-xs text-red-500 mt-0.5">Bạn có thể gửi lại bên dưới.</p>
+      {/* Rejected notice */}
+      {existingReq?.status === 'rejected' && (
+        <div className="mx-4 mb-2 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+          <XCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-red-700">Lệnh bị từ chối</p>
+            {existingReq.reviewNote && <p className="text-xs text-red-600">{existingReq.reviewNote}</p>}
+            <p className="text-xs text-red-500 mt-0.5">Bạn có thể gửi lại bên dưới.</p>
+          </div>
+        </div>
+      )}
+
+      {/* QR image — dynamic or static */}
+      {qrSrc && !qrError && (
+        <div className="px-4 pb-3 flex justify-center">
+          <img
+            src={qrSrc}
+            alt="QR thanh toán"
+            onError={() => setQrError(true)}
+            className={`object-contain rounded-xl border border-amber-200 ${dynamicQr ? 'w-full max-w-[220px]' : 'w-32 h-32'}`}
+          />
+        </div>
+      )}
+
+      {/* Bank info text */}
+      <div className="px-4 pb-3 space-y-1.5">
+        {bankSettings.bankId && (
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Ngân hàng</p>
+            <p className="text-sm font-semibold text-gray-900">{bankDisplayName(bankSettings.bankId)}</p>
+          </div>
+        )}
+        {bankSettings.accountNo && (
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Số tài khoản</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-bold text-gray-900 tracking-wider">{bankSettings.accountNo}</p>
+              <button type="button" onClick={doCopy} className="p-1 rounded hover:bg-amber-200 transition-colors">
+                <Copy size={13} className={copied ? 'text-green-600' : 'text-amber-600'} />
+              </button>
             </div>
           </div>
         )}
-
-        <div className="flex gap-4 items-start">
-          {bankSettings.qrImageDataUrl && (
-            <img src={bankSettings.qrImageDataUrl} alt="QR" className="w-28 h-28 object-contain rounded-lg border border-amber-200 shrink-0" />
-          )}
-          <div className="space-y-1.5 flex-1">
-            {bankSettings.bankName && (
-              <div>
-                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Ngân hàng</p>
-                <p className="text-sm font-semibold text-gray-900">{bankSettings.bankName}</p>
-              </div>
-            )}
-            {bankSettings.accountNo && (
-              <div>
-                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Số tài khoản</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-gray-900 tracking-wider">{bankSettings.accountNo}</p>
-                  <button type="button" onClick={doCopy}
-                    className="p-1 rounded hover:bg-amber-200 transition-colors">
-                    <Copy size={13} className={copied ? 'text-green-600' : 'text-amber-600'} />
-                  </button>
-                </div>
-              </div>
-            )}
-            {bankSettings.accountName && (
-              <div>
-                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Chủ tài khoản</p>
-                <p className="text-sm text-gray-800">{bankSettings.accountName}</p>
-              </div>
-            )}
-            <p className="text-xs text-amber-700 pt-1">
-              Số tiền: <strong>{formatVnd(group.contributionAmount)}</strong> · Kỳ {session.periodNumber}
-            </p>
+        {bankSettings.accountName && (
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Chủ tài khoản</p>
+            <p className="text-sm text-gray-800">{bankSettings.accountName}</p>
           </div>
+        )}
+        <div className="flex items-center justify-between pt-1 border-t border-amber-200">
+          <p className="text-xs text-amber-700">Số tiền · Kỳ {session.periodNumber}</p>
+          <p className="text-sm font-bold text-amber-700">{formatVnd(group.contributionAmount)}</p>
         </div>
+        {dynamicQr && (
+          <p className="text-[10px] text-amber-600">Nội dung CK đã điền sẵn trong QR</p>
+        )}
       </div>
 
       {/* Submit / form */}

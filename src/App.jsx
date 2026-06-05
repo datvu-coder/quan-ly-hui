@@ -12,6 +12,7 @@ import KeuHuiPage       from './pages/KeuHuiPage.jsx';
 import ReportsPage      from './pages/ReportsPage.jsx';
 import { Modal }        from './components/Modal.jsx';
 import { useHuiStore }  from './store/useHuiStore.js';
+import { BANKS }        from './lib/banks.js';
 import LoginPage        from './pages/LoginPage.jsx';
 import MemberPortal     from './pages/MemberPortal.jsx';
 
@@ -428,13 +429,17 @@ export default function App() {
             <p className="text-xs text-gray-500">Hiển thị cho thành viên khi cần chuyển khoản góp hụi.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block space-y-1">
-                <span className="text-xs text-gray-600">Tên ngân hàng</span>
-                <input
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm"
-                  placeholder="VD: Vietcombank"
-                  value={bankSettings.bankName}
-                  onChange={(e) => setBankSettings({ bankName: e.target.value })}
-                />
+                <span className="text-xs text-gray-600">Ngân hàng</span>
+                <select
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm bg-white"
+                  value={bankSettings.bankId}
+                  onChange={(e) => setBankSettings({ bankId: e.target.value })}
+                >
+                  <option value="">— Chọn ngân hàng —</option>
+                  {BANKS.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
               </label>
               <label className="block space-y-1">
                 <span className="text-xs text-gray-600">Số tài khoản</span>

@@ -307,7 +307,7 @@ export const useHuiStore = create(
       memberships: /** @type {Membership[]} */ ([]),
       transactions: /** @type {Transaction[]} */ ([]),
       sessions: /** @type {Session[]} */ ([]),
-      bankSettings: { accountNo: '', bankName: '', accountName: '', qrImageDataUrl: '' },
+      bankSettings: { bankId: '', accountNo: '', accountName: '', qrImageDataUrl: '' },
       paymentRequests: /** @type {Array} */ ([]),
       initialized: false,
       adminPasswordHash: '',
@@ -630,7 +630,12 @@ export const useHuiStore = create(
           state.members = [DEFAULT_ADMIN, ...state.members.filter((m) => m.phone !== DEFAULT_ADMIN.phone)];
         }
         state.memberPasswords = { ...state.memberPasswords, [DEFAULT_ADMIN_ID]: DEFAULT_ADMIN_HASH };
-        if (!state.bankSettings) state.bankSettings = { accountNo: '', bankName: '', accountName: '', qrImageDataUrl: '' };
+        if (!state.bankSettings) state.bankSettings = { bankId: '', accountNo: '', accountName: '', qrImageDataUrl: '' };
+        // Migrate old bankName → bankId
+        if ('bankName' in state.bankSettings && !state.bankSettings.bankId) {
+          state.bankSettings.bankId = '';
+          delete state.bankSettings.bankName;
+        }
         if (!Array.isArray(state.paymentRequests)) state.paymentRequests = [];
         return state;
       },
