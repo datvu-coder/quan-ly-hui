@@ -357,6 +357,12 @@ export default function App() {
       }
       // serverData === undefined → server unreachable, keep IDB data, show offline
       if (!cancelled && serverData === undefined) setSyncStatus('offline');
+
+      // Signal logo to stop spinning — data is now fresh from server (or offline)
+      if (!cancelled) {
+        window.__huiReady = true;
+        window.dispatchEvent(new CustomEvent('hui-ready'));
+      }
     })();
     return () => { cancelled = true; };
   }, [hydrated, markSynced]);
