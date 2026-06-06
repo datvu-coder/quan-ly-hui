@@ -264,13 +264,13 @@ export default function KeuHuiPage() {
           <table className="w-full min-w-[760px]">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Kỳ</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Ngày</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Người hốt</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Tiền nhận</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600"> </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Kỳ</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Ngày</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Người hốt</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Tiền nhận</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600"> </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -280,24 +280,26 @@ export default function KeuHuiPage() {
                 const badge = statusBadge[sess.status] ?? statusBadge.open;
                 return (
                   <tr key={sess.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-gray-900">{g?.name ?? '—'}</p>
-                      <p className="text-xs text-gray-400">
-                        {g ? (g.type === 'live' ? 'Hụi sống' : 'Hụi chết') : ''}
-                      </p>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                      {g?.name ?? '—'}
+                      {g && (
+                        <span className="ml-1.5 text-xs font-normal text-gray-400">
+                          · {g.type === 'live' ? 'Hụi sống' : 'Hụi chết'}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 font-medium">Kỳ {sess.periodNumber}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(sess.date)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 text-sm text-gray-700 font-medium whitespace-nowrap">Kỳ {sess.periodNumber}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{formatDate(sess.date)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.cls}`}>
                         {badge.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{winner?.name ?? '—'}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-amber-600">
+                    <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{winner?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-amber-600 whitespace-nowrap">
                       {sess.winnerNetAmount != null ? formatVnd(sess.winnerNetAmount) : '—'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
