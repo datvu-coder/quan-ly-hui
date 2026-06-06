@@ -41,6 +41,7 @@ function lastMonthsBuckets(transactions, months = 6) {
 export default function DashboardPage() {
   const groups = useHuiStore((s) => s.groups);
   const transactions = useHuiStore((s) => s.transactions);
+  const sessions = useHuiStore((s) => s.sessions);
   const members = useHuiStore((s) => s.members);
   const memberships = useHuiStore((s) => s.memberships);
   const dashboardStats = useHuiStore((s) => s.dashboardStats);
@@ -62,10 +63,15 @@ export default function DashboardPage() {
     const result = [];
     for (const group of groups) {
       const cp = currentPeriodNumber(group.startDate, group.cycle);
+      const closedSession = sessions.find(
+        (s) => s.groupId === group.id && s.periodNumber === cp && s.status === 'closed'
+      );
+      const winnerThisPeriod = closedSession?.winnerId ?? null;
       const groupMemberIds = memberships
         .filter((x) => x.groupId === group.id)
         .map((x) => x.memberId);
       for (const mid of groupMemberIds) {
+        if (mid === winnerThisPeriod) continue;
         const paid = transactions.some(
           (t) =>
             t.memberId === mid &&
@@ -80,7 +86,7 @@ export default function DashboardPage() {
       }
     }
     return result;
-  }, [groups, memberships, transactions, memberById]);
+  }, [groups, memberships, sessions, transactions, memberById]);
 
   const statCards = [
     {
