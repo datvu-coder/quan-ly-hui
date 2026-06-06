@@ -8,19 +8,31 @@ import {
 import { useHuiStore } from '../store/useHuiStore.js';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
 import { bankDisplayName, buildVietQrUrl } from '../lib/banks.js';
-import { calcSessionNet } from '../lib/period.js';
+import { calcSessionNet, calcPeriodGross } from '../lib/period.js';
 
 const statusLabel = { active: 'Đang hoạt động', warning: 'Cần chú ý', debt: 'Đang nợ', left: 'Đã rời' };
 const statusCls   = { active: 'bg-green-100 text-green-700', warning: 'bg-amber-100 text-amber-700', debt: 'bg-red-100 text-red-700', left: 'bg-gray-100 text-gray-500' };
 
 // ── Bid panel: member submits / edits / cancels their bid ─────────────────────
 function BidPanel({ group, session, memberId }) {
-  const updateSession = useHuiStore((s) => s.updateSession);
+  const updateSession   = useHuiStore((s) => s.updateSession);
+  const sessions        = useHuiStore((s) => s.sessions);
+  const membersForGroup = useHuiStore((s) => s.membersForGroup);
   const isLive = group.type === 'live';
 
   const [editing, setEditing]   = useState(false);
   const [bidRate, setBidRate]   = useState('');
   const [error, setError]       = useState('');
+
+  // Gross thực tế của kỳ này (tính đúng số người đã hốt, mức đóng chết/sống)
+  const memberIds = useMemo(
+    () => membersForGroup(group.id).map((m) => m.id),
+    [membersForGroup, group.id]
+  );
+  const gross = useMemo(
+    () => calcPeriodGross(group, sessions, memberIds, session.periodNumber),
+    [group, sessions, memberIds, session.periodNumber]
+  );
 
   const myBid    = session.bids.find((b) => b.memberId === memberId);
   const topRate  = isLive && session.bids.length
@@ -30,7 +42,7 @@ function BidPanel({ group, session, memberId }) {
 
   // Estimated pot when member types a rate
   const previewNet = isLive && bidRate !== ''
-    ? calcSessionNet(group, Math.max(0, Number(bidRate) || 0)).net
+    ? calcSessionNet(group, Math.max(0, Number(bidRate) || 0), gross).net
     : null;
 
   const doSubmit = () => {
@@ -81,7 +93,7 @@ function BidPanel({ group, session, memberId }) {
             <div className="flex-1">
               <p className="text-2xl font-bold text-gray-900">{myBid.bidRate}%</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Nhận ≈ <span className="font-semibold text-gray-700">{formatVnd(calcSessionNet(group, myBid.bidRate).net)}</span>
+                Nhận ≈ <span className="font-semibold text-gray-700">{formatVnd(calcSessionNet(group, myBid.bidRate, gross).net)}</span>
                 {rivalCount > 0 && ` · ${rivalCount} người cùng kêu`}
               </p>
             </div>
@@ -189,7 +201,7 @@ function BidPanel({ group, session, memberId }) {
         <div className="space-y-2">
           <p className="text-xs text-amber-700">
             Hụi chết — nhận{' '}
-            <strong>{formatVnd(calcSessionNet(group, 0).net)}</strong> nếu được chọn kỳ {session.periodNumber}.
+            <strong>{formatVnd(calcSessionNet(group, 0, gross).net)}</strong> nếu được chọn kỳ {session.periodNumber}.
           </p>
           <button
             type="button"
@@ -429,7 +441,13 @@ export default function MemberPortal({ memberId, onLogout }) {
     const remaining = membersForGroup(g.id).filter((m) => !wonIds.has(m.id));
     const iAmEligible = remaining.some((m) => m.id === memberId);
 
-    return { group: g, openSession, iWonPeriod, myPaidThisPeriod, history, remaining, iAmEligible };
+    // Gross thực tế kỳ đang mở (dùng cho hiển thị tab Kêu hụi)
+    const allMemberIds = membersForGroup(g.id).map((m) => m.id);
+    const openGross = openSession
+      ? calcPeriodGross(g, sessions, allMemberIds, openSession.periodNumber)
+      : null;
+
+    return { group: g, openSession, iWonPeriod, myPaidThisPeriod, history, remaining, iAmEligible, openGross };
   }), [myGroups, sessions, transactions, memberId, memberById, membersForGroup]);
 
   const myTxs = useMemo(() =>
@@ -641,7 +659,7 @@ export default function MemberPortal({ memberId, onLogout }) {
 
             {groupData
               .filter(({ openSession }) => !!openSession)
-              .map(({ group: g, openSession, iWonPeriod, iAmEligible }) => (
+              .map(({ group: g, openSession, iWonPeriod, iAmEligible, openGross }) => (
                 <div key={g.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -661,11 +679,11 @@ export default function MemberPortal({ memberId, onLogout }) {
                     <div className="grid grid-cols-3 gap-3 text-center text-xs">
                       <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5">
                         <p className="text-gray-400 mb-0.5">Tổng quỹ</p>
-                        <p className="font-bold text-gray-900">{formatVnd(g.contributionAmount * g.expectedMemberCount)}</p>
+                        <p className="font-bold text-gray-900">{formatVnd(openGross ?? 0)}</p>
                       </div>
                       <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5">
                         <p className="text-gray-400 mb-0.5">Nhận được</p>
-                        <p className="font-bold text-emerald-600">{formatVnd(calcSessionNet(g, 0).net)}</p>
+                        <p className="font-bold text-emerald-600">{formatVnd(calcSessionNet(g, 0, openGross).net)}</p>
                       </div>
                       <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5">
                         <p className="text-gray-400 mb-0.5">Đã kêu</p>
