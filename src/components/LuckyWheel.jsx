@@ -459,15 +459,27 @@ export default function LuckyWheel({ members, onSelect }) {
               {/* Hub center */}
               <circle cx={CX} cy={CY} r={45} fill="url(#hub)"/>
               <circle cx={CX} cy={CY} r={41} fill="none" stroke="#FCD34D" strokeWidth="2.8"/>
-              <circle cx={CX} cy={CY} r={37} fill="none" stroke="#F59E0B" strokeWidth="0.9" opacity="0.55"/>
-              <circle cx={CX} cy={CY} r={32} fill="none" stroke="#FDE68A" strokeWidth="0.5" opacity="0.3"/>
-              {/* Hub text */}
-              <text x={CX} y={CY - 11} textAnchor="middle" dominantBaseline="middle"
-                fontSize={14.5} fontWeight="900" fill="#FCD34D" fontFamily="system-ui,sans-serif"
-                letterSpacing="2">HỤI</text>
-              <text x={CX} y={CY + 11} textAnchor="middle" dominantBaseline="middle"
-                fontSize={10} fontWeight="700" fill="#F59E0B" fontFamily="system-ui,sans-serif"
-                letterSpacing="1">PRO</text>
+              {/* Hub logo — inline SVG, scaled to 56×56, centered */}
+              <g transform={`translate(${CX - 28},${CY - 28}) scale(${56 / 120})`}>
+                <defs>
+                  <linearGradient id="hlbg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%"   stopColor="#fbbf24"/>
+                    <stop offset="100%" stopColor="#ea580c"/>
+                  </linearGradient>
+                  <linearGradient id="hlsh" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.30"/>
+                    <stop offset="75%" stopColor="#ffffff" stopOpacity="0"/>
+                  </linearGradient>
+                  <clipPath id="hlcp">
+                    <rect width="120" height="120" rx="26" ry="26"/>
+                  </clipPath>
+                </defs>
+                <rect width="120" height="120" rx="26" ry="26" fill="url(#hlbg)"/>
+                <rect width="120" height="70"  fill="url(#hlsh)" clipPath="url(#hlcp)"/>
+                <rect x="18" y="20" width="22" height="80" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
+                <rect x="80" y="20" width="22" height="80" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
+                <rect x="18" y="50" width="84" height="21" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
+              </g>
             </g>
 
             {/* Fixed gloss sheen — stays in place while wheel rotates */}
