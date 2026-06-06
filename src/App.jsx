@@ -627,19 +627,10 @@ export default function App() {
         <p className="text-sm text-gray-600">Xóa dây hụi, thành viên và giao dịch trên máy này. Nên xuất backup trước khi thử.</p>
       </Modal>
 
-      {/* ── Cloud sync status badge ─────────────────────────────────────── */}
-      {syncStatus !== 'idle' && (
-        <div className={`fixed bottom-20 lg:bottom-4 right-4 z-50 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full shadow border transition-all ${
-          syncStatus === 'saving'  ? 'bg-amber-50 border-amber-200 text-amber-700' :
-          syncStatus === 'synced'  ? 'bg-green-50  border-green-200  text-green-700'  :
-                                     'bg-red-50   border-red-200   text-red-600'
-        }`}>
-          {syncStatus === 'saving' && (
-            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          )}
-          {syncStatus === 'saving'  ? 'Đang lưu...' :
-           syncStatus === 'synced'  ? '☁ Đã lưu'    :
-                                      '⚠ Offline — chưa lưu được'}
+      {/* ── Cloud sync status badge — chỉ hiện khi offline ─────────────── */}
+      {syncStatus === 'offline' && (
+        <div className="fixed bottom-20 lg:bottom-4 right-4 z-50 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full shadow border bg-red-50 border-red-200 text-red-600">
+          ⚠ Offline — chưa lưu được
         </div>
       )}
     </>
