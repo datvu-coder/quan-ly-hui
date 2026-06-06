@@ -695,6 +695,7 @@ export default function KeuHuiPage() {
               );
               const paidSet = new Set(paidTxs.map((t) => t.memberId));
               const paidCount = paidSet.size;
+              const needToPay = groupMembers.filter((m) => m.id !== detailSession.winnerId).length;
               return (
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -702,29 +703,36 @@ export default function KeuHuiPage() {
                       Góp quỹ kỳ {detailSession.periodNumber}
                     </p>
                     <span className="text-xs text-gray-500">
-                      {paidCount}/{groupMembers.length} đã nộp
+                      {paidCount}/{needToPay} đã nộp
                     </span>
                   </div>
                   <div className="space-y-1.5">
                     {groupMembers.map((m) => {
                       const paid = paidSet.has(m.id);
                       const tx = paidTxs.find((t) => t.memberId === m.id);
+                      const isWinner = m.id === detailSession.winnerId;
                       return (
                         <div
                           key={m.id}
                           className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
                             paid
                               ? 'bg-green-50 border-green-200'
+                              : isWinner
+                              ? 'bg-blue-50 border-blue-200'
                               : 'bg-gray-50 border-gray-200'
                           }`}
                         >
                           <div className="flex items-center gap-2">
                             {paid ? (
                               <CheckCircle2 size={15} className="text-green-600 shrink-0" />
+                            ) : isWinner ? (
+                              <CheckCircle2 size={15} className="text-blue-500 shrink-0" />
                             ) : (
                               <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
                             )}
-                            <span className={paid ? 'text-gray-800' : 'text-gray-500'}>{m.name}</span>
+                            <span className={paid ? 'text-gray-800' : isWinner ? 'text-blue-700 font-medium' : 'text-gray-500'}>
+                              {m.name}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             {paid ? (
@@ -740,6 +748,8 @@ export default function KeuHuiPage() {
                                   Hoàn
                                 </button>
                               </>
+                            ) : isWinner ? (
+                              <span className="text-xs text-blue-600 font-medium">Người hốt — miễn góp</span>
                             ) : (
                               <button
                                 type="button"
@@ -1035,7 +1045,9 @@ export default function KeuHuiPage() {
                 (t) => t.groupId === detailGroup.id && t.periodNumber === detailSession.periodNumber
                   && t.kind === 'contribution' && t.status === 'completed'
               ).length;
-              const unpaid = groupMembers.length - paidCount;
+              // winner doesn't pay, so exclude them from the required count
+              const required = groupMembers.filter((m) => m.id !== confirmWinnerId).length;
+              const unpaid = required - paidCount;
               if (unpaid <= 0) return null;
               return (
                 <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-800">
