@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { hashPassword, verifyPassword } from '../lib/auth.js';
@@ -82,23 +82,6 @@ function Logo() {
       <div className="text-center">
         <p className="text-[18px] font-bold text-[#1d1d1f] tracking-tight">Hui Pro</p>
         <p className="text-[12px] text-[#aeaeb2] tracking-[0.06em] mt-0.5">Quản lý hụi thông minh</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Member avatar ─────────────────────────────────────────────────────────────
-function MemberAvatar({ member }) {
-  const initial = member.name?.trim()?.[0]?.toUpperCase() ?? '?';
-  return (
-    <div className="flex flex-col items-center gap-2.5 pb-2">
-      <div className="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-amber-400 to-orange-500
-        flex items-center justify-center shadow-[0_4px_14px_rgba(255,149,0,0.3)]">
-        <span className="text-white font-bold text-[26px] leading-none select-none">{initial}</span>
-      </div>
-      <div className="text-center">
-        <p className="text-[17px] font-semibold text-[#1d1d1f]">{member.name}</p>
-        <p className="text-[13px] text-[#6e6e73] mt-0.5">{member.phone}</p>
       </div>
     </div>
   );
@@ -190,110 +173,100 @@ function BootstrapForm({ onSuccess }) {
   );
 }
 
-// ── Step 1: Nhập số điện thoại ───────────────────────────────────────────────
-function PhoneStep({ onFound }) {
-  const members = useHuiStore((s) => s.members);
-  const [phone, setPhone] = useState('');
-  const [error, setError] = useState('');
+// ── Form đăng nhập gộp: SĐT + mật khẩu trên cùng 1 màn hình ────────────────
+function LoginForm({ onSuccess }) {
+  const members           = useHuiStore((s) => s.members);
+  const memberPasswords   = useHuiStore((s) => s.memberPasswords);
+  const setMemberPassword = useHuiStore((s) => s.setMemberPassword);
+
+  const [phone,   setPhone]   = useState('');
+  const [pw,      setPw]      = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [errors,  setErrors]  = useState({});
+
+  // Tìm thành viên theo SĐT khi người dùng nhập
+  const member = useMemo(() => {
+    const clean = phone.trim().replace(/\s+/g, '');
+    if (!clean) return null;
+    return members.find((m) => m.phone && m.phone.replace(/\s+/g, '') === clean) ?? null;
+  }, [phone, members]);
+
+  const isFirstTime = member && !memberPasswords[member.id];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
+    const errs = {};
     const clean = phone.trim().replace(/\s+/g, '');
-    if (!clean) { setError('Vui lòng nhập số điện thoại'); return; }
-    const member = members.find((m) => m.phone && m.phone.replace(/\s+/g, '') === clean);
-    if (!member) { setError('Số điện thoại không tìm thấy trong hệ thống'); return; }
-    onFound(member);
+
+    if (!clean)        errs.phone = 'Vui lòng nhập số điện thoại';
+    else if (!member)  errs.phone = 'Số điện thoại không tìm thấy';
+
+    if (!pw)           errs.pw = 'Vui lòng nhập mật khẩu';
+    else if (isFirstTime) {
+      if (pw.length < 6)   errs.pw = 'Mật khẩu tối thiểu 6 ký tự';
+      else if (pw !== confirm) errs.confirm = 'Mật khẩu xác nhận không khớp';
+    } else if (member && !errs.phone) {
+      if (!verifyPassword(pw, memberPasswords[member.id])) errs.pw = 'Mật khẩu không đúng';
+    }
+
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
+    if (isFirstTime) setMemberPassword(member.id, hashPassword(pw));
+    onSuccess(member.isAdmin ? 'admin' : member.id);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="text-center">
         <h2 className="text-[20px] font-semibold text-[#1d1d1f]">Đăng nhập</h2>
-        <p className="text-[13px] text-[#6e6e73] mt-1.5">
-          Nhập số điện thoại đã đăng ký để tiếp tục
-        </p>
+        <p className="text-[13px] text-[#6e6e73] mt-1.5">Nhập thông tin tài khoản để tiếp tục</p>
       </div>
 
+      {/* Số điện thoại */}
       <div>
         <input
           className={inputCls}
           type="tel"
           placeholder="Số điện thoại"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: '' })); }}
           autoFocus
           inputMode="tel"
         />
-        <FieldError msg={error} />
+        {/* Hiện tên thành viên khi tìm thấy */}
+        {member && !errors.phone && (
+          <p className="text-[12px] text-emerald-600 mt-1.5 px-0.5 flex items-center gap-1">
+            <span className="font-bold">✓</span> {member.name}
+            {isFirstTime && <span className="text-amber-500 ml-1">— lần đầu đăng nhập</span>}
+          </p>
+        )}
+        <FieldError msg={errors.phone} />
       </div>
 
-      <PrimaryBtn>Tiếp tục</PrimaryBtn>
-    </form>
-  );
-}
-
-// ── Step 2: Nhập mật khẩu ────────────────────────────────────────────────────
-function PasswordStep({ member, onSuccess, onBack }) {
-  const memberPasswords   = useHuiStore((s) => s.memberPasswords);
-  const setMemberPassword = useHuiStore((s) => s.setMemberPassword);
-
-  const isSetup = !memberPasswords[member.id];
-  const [pw, setPw]           = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError]     = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError('');
-    if (isSetup) {
-      if (pw.length < 6)    { setError('Mật khẩu tối thiểu 6 ký tự'); return; }
-      if (pw !== confirm)   { setError('Mật khẩu xác nhận không khớp'); return; }
-      setMemberPassword(member.id, hashPassword(pw));
-      onSuccess(member.isAdmin ? 'admin' : member.id);
-    } else {
-      if (!verifyPassword(pw, memberPasswords[member.id])) { setError('Mật khẩu không đúng'); return; }
-      onSuccess(member.isAdmin ? 'admin' : member.id);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <MemberAvatar member={member} />
-
-      {isSetup && (
-        <p className="text-center text-[13px] text-[#6e6e73] -mt-1">
-          Lần đầu đăng nhập — hãy tạo mật khẩu riêng
-        </p>
-      )}
-
+      {/* Mật khẩu */}
       <div>
         <PwInput
           value={pw}
-          onChange={(e) => setPw(e.target.value)}
-          placeholder={isSetup ? 'Tạo mật khẩu mới' : 'Mật khẩu'}
-          autoFocus
+          onChange={(e) => { setPw(e.target.value); setErrors((p) => ({ ...p, pw: '' })); }}
+          placeholder={isFirstTime ? 'Tạo mật khẩu mới (tối thiểu 6 ký tự)' : 'Mật khẩu'}
         />
-        {!isSetup && error && <FieldError msg={error} />}
+        <FieldError msg={errors.pw} />
       </div>
 
-      {isSetup && (
+      {/* Xác nhận mật khẩu — chỉ hiện khi lần đầu */}
+      {isFirstTime && (
         <div>
           <PwInput
             value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: '' })); }}
             placeholder="Xác nhận mật khẩu"
           />
-          <FieldError msg={error} />
+          <FieldError msg={errors.confirm} />
         </div>
       )}
 
-      {!isSetup && !error && <div />}
-
-      <PrimaryBtn>{isSetup ? 'Tạo mật khẩu & Đăng nhập' : 'Đăng nhập'}</PrimaryBtn>
-
-      <div className="flex justify-center">
-        <TextBtn onClick={onBack}>Không phải {member.name}?</TextBtn>
+      <div className="pt-1">
+        <PrimaryBtn>{isFirstTime ? 'Tạo mật khẩu & Đăng nhập' : 'Đăng nhập'}</PrimaryBtn>
       </div>
     </form>
   );
@@ -304,41 +277,26 @@ export default function LoginPage({ onSuccess }) {
   const members     = useHuiStore((s) => s.members);
   const adminExists = members.some((m) => m.isAdmin);
 
-  const [found, setFound] = useState(null); // null → phone step; member → password step
-
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px]">
 
-        {/* Card */}
         <div className="bg-white rounded-[20px] shadow-[0_4px_40px_rgba(0,0,0,0.10)] overflow-hidden">
-
-          {/* Logo area */}
           <div className="px-10 pt-10 pb-7">
             <Logo />
           </div>
-
-          {/* Form area */}
           <div className="px-10 pb-10">
             {!adminExists
               ? <BootstrapForm onSuccess={onSuccess} />
-              : found
-              ? <PasswordStep
-                  member={found}
-                  onSuccess={onSuccess}
-                  onBack={() => setFound(null)}
-                />
-              : <PhoneStep onFound={setFound} />
+              : <LoginForm onSuccess={onSuccess} />
             }
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-[12px] text-[#aeaeb2] mt-8 leading-relaxed px-4">
           Dữ liệu lưu trên thiết bị của bạn.<br />
           Không chia sẻ với bên thứ ba.
         </p>
-
       </div>
     </div>
   );

@@ -11,8 +11,6 @@ import {
 } from 'recharts';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { formatDate, formatVndCompact } from '../lib/format.js';
-import { LegalBanner } from '../components/LegalBanner.jsx';
-import { isInterestRateIllegal, isLargeFundWarning } from '../lib/calculations.js';
 import { currentPeriodNumber } from '../lib/period.js';
 
 function lastMonthsBuckets(transactions, months = 6) {
@@ -59,18 +57,6 @@ export default function DashboardPage() {
       .slice(0, 8);
   }, [transactions]);
 
-  const interestWarnings = useMemo(() => {
-    const w = [];
-    for (const g of groups) {
-      if (g.type === 'live' && isInterestRateIllegal(g.interestRateAnnual)) {
-        w.push(
-          `Dây “${g.name}”: lãi ${g.interestRateAnnual}%/năm vượt 20% — cần rà soát pháp lý & điều chỉnh thỏa thuận.`
-        );
-      }
-    }
-    return w;
-  }, [groups]);
-
   // Late payment detection
   const lateList = useMemo(() => {
     const result = [];
@@ -95,13 +81,6 @@ export default function DashboardPage() {
     }
     return result;
   }, [groups, memberships, transactions, memberById]);
-
-  const fundWarning = isLargeFundWarning(stats.totalContrib) || groups.some((g) => {
-    const tg = transactions
-      .filter((t) => t.groupId === g.id && t.kind === 'contribution' && t.status === 'completed')
-      .reduce((a, t) => a + t.amount, 0);
-    return isLargeFundWarning(tg);
-  });
 
   const statCards = [
     {
@@ -136,8 +115,6 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
-      <LegalBanner interestWarnings={interestWarnings} fundWarning={fundWarning} />
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((stat, idx) => {
           const Icon = stat.icon;
