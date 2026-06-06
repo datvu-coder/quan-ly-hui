@@ -86,6 +86,12 @@ function Sidebar({ current, onNavigate, open, setOpen, onSeedDemo, onLogout }) {
 
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        {/* Logo khi sidebar thu gọn — luôn có thể bấm để reload */}
+        {collapsed && (
+          <div className="flex justify-center pb-2 pt-0.5">
+            <LogoIcon size={24} />
+          </div>
+        )}
         {SIDEBAR_NAV.map(({ id, label, icon: Icon }) => {
           const active = current === id;
           return (
