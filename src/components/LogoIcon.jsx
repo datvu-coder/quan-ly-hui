@@ -7,6 +7,7 @@ export default function LogoIcon({ size = 40, className = '' }) {
   const [spinning, setSpinning] = useState(false);
 
   const handleClick = () => {
+    window.__huiReloading = true;
     setSpinning(true);
     window.location.reload();
   };

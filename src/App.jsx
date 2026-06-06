@@ -359,7 +359,8 @@ export default function App() {
   useEffect(() => {
     let saveTimer;
     const unsub = useHuiStore.subscribe((state) => {
-      if (!state.initialized) return;
+      // Skip if page is about to reload (logo click) or store not yet ready
+      if (!state.initialized || window.__huiReloading) return;
       clearTimeout(saveTimer);
       setSyncStatus('saving');
       saveTimer = setTimeout(async () => {
