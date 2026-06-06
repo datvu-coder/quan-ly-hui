@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { hashPassword, verifyPassword } from '../lib/auth.js';
+import LogoIcon from '../components/LogoIcon.jsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design tokens (Apple-inspired)
@@ -75,9 +76,8 @@ function TextBtn({ children, onClick }) {
 function Logo() {
   return (
     <div className="flex flex-col items-center gap-3 pb-8 border-b border-[#f0f0f0]">
-      <div className="w-[62px] h-[62px] rounded-[18px] bg-gradient-to-br from-amber-400 to-orange-500
-        flex items-center justify-center shadow-[0_4px_14px_rgba(255,149,0,0.35)]">
-        <span className="text-white font-bold text-[28px] leading-none select-none">H</span>
+      <div className="drop-shadow-[0_4px_14px_rgba(255,149,0,0.40)]">
+        <LogoIcon size={62} />
       </div>
       <div className="text-center">
         <p className="text-[18px] font-bold text-[#1d1d1f] tracking-tight">Hui Pro</p>

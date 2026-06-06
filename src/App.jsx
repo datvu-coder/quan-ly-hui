@@ -16,6 +16,7 @@ import { BANKS, buildVietQrUrl } from './lib/banks.js';
 import { fetchServerData, pushToServer } from './lib/api.js';
 import LoginPage        from './pages/LoginPage.jsx';
 import MemberPortal     from './pages/MemberPortal.jsx';
+import LogoIcon         from './components/LogoIcon.jsx';
 
 // ── Nav configs ──────────────────────────────────────────────────────────────
 const SIDEBAR_NAV = [
@@ -75,9 +76,7 @@ function Sidebar({ current, onNavigate, open, setOpen, onSeedDemo, onLogout }) {
           {collapsed ? <Menu size={19} /> : <ChevronLeft size={19} />}
         </button>
         <div className={`flex items-center gap-2.5 pl-[68px] pr-4 overflow-hidden transition-all duration-300 ${collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-md shadow-amber-900/40">
-            <span className="text-white font-black text-sm">H</span>
-          </div>
+          <LogoIcon size={28} />
           <div>
             <p className="text-[13px] font-bold text-white tracking-wide leading-none">HUI PRO</p>
             <p className="text-[10px] text-slate-500 mt-0.5">Quản lý hụi thông minh</p>
@@ -123,9 +122,7 @@ function MobileHeader({ title, onSettings }) {
     <header className="lg:hidden fixed top-0 inset-x-0 z-20 h-14 bg-white border-b border-gray-100 flex items-center px-4 gap-3 shadow-sm">
       {/* Brand */}
       <div className="flex items-center gap-2 mr-auto">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm shadow-amber-300/40">
-          <span className="text-white font-black text-sm leading-none">H</span>
-        </div>
+        <LogoIcon size={32} />
         <span className="text-[15px] font-bold text-gray-900 tracking-tight">{title}</span>
       </div>
 
