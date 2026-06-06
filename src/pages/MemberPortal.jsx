@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import LogoIcon from '../components/LogoIcon.jsx';
 import {
   LogOut, CheckCircle2, Clock, TrendingDown, TrendingUp,
   Users, Calendar, Gavel, X, Edit2, AlertCircle,
@@ -456,9 +457,7 @@ export default function MemberPortal({ memberId, onLogout }) {
       {/* Header */}
       <header className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-lg">H</span>
-          </div>
+          <LogoIcon size={40} />
           <div>
             <p className="text-xs text-slate-400">Xin chào,</p>
             <p className="font-bold text-white text-sm">{member.name}</p>
