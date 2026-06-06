@@ -170,12 +170,12 @@ export default function MembersPage() {
           <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Tên</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Điện thoại</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Đã góp</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Thao tác</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Tên</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Điện thoại</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Đã góp</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -184,9 +184,9 @@ export default function MembersPage() {
                 const contributed = contributionTotalForMember(member.id);
                 return (
                   <tr key={member.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">{member.name}</span>
                         {member.isAdmin && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
                             <Shield size={10} /> Admin
@@ -199,21 +199,15 @@ export default function MembersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-500">{member.phone}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-gray-800">{gc}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-amber-600">{formatVnd(contributed)}</p>
-                    </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{member.phone}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-800 whitespace-nowrap">{gc}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-amber-600 whitespace-nowrap">{formatVnd(contributed)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass[member.status] ?? 'bg-gray-100 text-gray-600'}`}>
                         {statusLabel[member.status]}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"

@@ -196,30 +196,28 @@ export default function ReportsPage() {
       </div>
 
       <div className="rounded-xl bg-white border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50">
+        <div className="px-4 sm:px-4 py-3 sm:py-4 border-b border-gray-200 bg-gray-50">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Theo từng dây</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">Đã góp</th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">Đã hốt</th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">Hoa hồng (meta)</th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">Số dư</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Đã góp</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Đã hốt</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Hoa hồng (meta)</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Số dư</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {perGroup.map((row) => (
                 <tr key={row.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-sm text-gray-900">{row.name}</td>
-                  <td className="px-6 py-3 text-sm text-right text-amber-600">{formatVnd(row.contrib)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-emerald-600">{formatVnd(row.withdraw)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-500">{formatVnd(row.commission)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">
-                    {formatVnd(row.balance)}
-                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{row.name}</td>
+                  <td className="px-4 py-3 text-sm text-right text-amber-600 whitespace-nowrap">{formatVnd(row.contrib)}</td>
+                  <td className="px-4 py-3 text-sm text-right text-emerald-600 whitespace-nowrap">{formatVnd(row.withdraw)}</td>
+                  <td className="px-4 py-3 text-sm text-right text-gray-500 whitespace-nowrap">{formatVnd(row.commission)}</td>
+                  <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900 whitespace-nowrap">{formatVnd(row.balance)}</td>
                 </tr>
               ))}
             </tbody>
