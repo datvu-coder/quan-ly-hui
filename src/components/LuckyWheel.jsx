@@ -468,9 +468,9 @@ export default function LuckyWheel({ members, onSelect }) {
               {/* Hub logo — scaled to 56×56, centered; gradient defined in main <defs> */}
               <g transform={`translate(${CX - 28},${CY - 28}) scale(${56 / 120})`}>
                 <rect width="120" height="120" rx="26" ry="26" fill="url(#hlbg)"/>
-                <rect x="18" y="20" width="22" height="80" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
-                <rect x="80" y="20" width="22" height="80" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
-                <rect x="18" y="50" width="84" height="21" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
+                <rect x="24" y="24" width="20" height="72" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
+                <rect x="76" y="24" width="20" height="72" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
+                <rect x="24" y="50" width="72" height="20" rx="7" ry="7" fill="white" fillOpacity="0.95"/>
               </g>
             </g>
 
