@@ -61,6 +61,40 @@ function playTick(ctx, freq = 900) {
   } catch {}
 }
 
+// Victory fanfare khi có người thắng
+function playFanfare(ctx) {
+  if (!ctx) return;
+  try {
+    ctx.resume?.();
+    // ta-ta-ta-TAAAA! (C5 E5 G5 C6 – G5 – C6)
+    const notes = [
+      [523.25, 0.00, 0.11],
+      [659.25, 0.10, 0.11],
+      [783.99, 0.20, 0.11],
+      [1046.5, 0.31, 0.52],
+      [783.99, 0.57, 0.09],
+      [1046.5, 0.68, 0.65],
+    ];
+    notes.forEach(([freq, start, dur]) => {
+      // Square wave (brightness) + sine (warmth) = trumpet-like
+      ['square', 'sine'].forEach((type, i) => {
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = type;
+        osc.frequency.value = freq;
+        const vol = i === 0 ? 0.13 : 0.07;
+        const t   = ctx.currentTime + start;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.018);
+        g.gain.setValueAtTime(vol, t + dur - 0.04);
+        g.gain.linearRampToValueAtTime(0, t + dur);
+        osc.start(t); osc.stop(t + dur + 0.01);
+      });
+    });
+  } catch {}
+}
+
 // Canvas confetti burst
 function launchConfetti(canvas) {
   if (!canvas) return () => {};
@@ -108,28 +142,38 @@ function launchConfetti(canvas) {
 }
 
 export default function LuckyWheel({ members, onSelect }) {
-  const [spinning, setSpinning]   = useState(false);
-  const [winnerIdx, setWinnerIdx] = useState(null);
-  const [ptrBounce, setPtrBounce] = useState(false);
-  const rotRef       = useRef(0);
-  const rafRef       = useRef(null);
-  const wheelGRef    = useRef(null);
-  const audioRef     = useRef(null);
-  const lastSegRef   = useRef(-1);
-  const canvasRef    = useRef(null);
-  const stopConfetti = useRef(null);
+  const [spinning, setSpinning]     = useState(false);
+  const [winnerIdx, setWinnerIdx]   = useState(null);
+  const [ptrBounce, setPtrBounce]   = useState(false);
+  const [isCharging, setIsCharging] = useState(false);
+  const rotRef        = useRef(0);
+  const rafRef        = useRef(null);
+  const wheelGRef     = useRef(null);
+  const audioRef      = useRef(null);
+  const lastSegRef    = useRef(-1);
+  const canvasRef     = useRef(null);
+  const stopConfetti  = useRef(null);
+  // Charge (hold-to-spin) refs
+  const chargeRef      = useRef(0);      // current power 0-1
+  const chargeStartRef = useRef(0);      // timestamp khi bắt đầu giữ
+  const chargeRafRef   = useRef(null);   // RAF cho power bar
+  const isChargingRef  = useRef(false);  // mirror isCharging, tránh stale closure
+  const spinFnRef      = useRef(null);   // ref tới spinWithPower để releaseCharge dùng
+  const powerBarRef    = useRef(null);   // DOM ref → cập nhật trực tiếp (không re-render)
+  const powerLabelRef  = useRef(null);
 
   const n   = members.length;
   const seg = n > 0 ? 360 / n : 360;
 
   useEffect(() => () => {
     cancelAnimationFrame(rafRef.current);
+    cancelAnimationFrame(chargeRafRef.current);
     stopConfetti.current?.();
   }, []);
 
-  const spin = useCallback(() => {
+  // power: 0–1, điều khiển số vòng và thời gian quay
+  const spinWithPower = useCallback((power = 0.7) => {
     if (spinning || n < 2) return;
-    // Initialise audio on first user gesture
     if (!audioRef.current) audioRef.current = createAudioCtx();
     audioRef.current?.resume?.();
     stopConfetti.current?.(); stopConfetti.current = null;
@@ -137,14 +181,14 @@ export default function LuckyWheel({ members, onSelect }) {
     setWinnerIdx(null); setPtrBounce(false); setSpinning(true);
 
     const idx        = Math.floor(rand() * n);
-    // Land at a random position within the winning segment (not always at center)
-    const landOffset = (rand() - 0.5) * seg * 0.6; // ±30% từ tâm ô
+    const landOffset = (rand() - 0.5) * seg * 0.6;
     const baseTarget = -(idx * seg + seg / 2 + landOffset);
     const diff       = ((baseTarget - rotRef.current) % 360 + 360) % 360 || 360;
-    const extraSpins = (8 + Math.floor(rand() * 6)) * 360; // 8–13 vòng
+    // power 0→1 : 3→14 vòng, 3→10 giây
+    const extraSpins = (2 + Math.round(power * 11 + rand() * 1.5)) * 360;
     const totalDelta = diff + extraSpins;
     const startRot   = rotRef.current;
-    const duration   = 7000 + rand() * 2000; // 7–9 s — đủ dài để cubic thể hiện
+    const duration   = 3000 + power * 7000 + rand() * 800;
     const startTime  = performance.now();
 
     const animate = (now) => {
@@ -154,11 +198,10 @@ export default function LuckyWheel({ members, onSelect }) {
       if (wheelGRef.current)
         wheelGRef.current.setAttribute('transform', `rotate(${rot} ${CX} ${CY})`);
 
-      // Detect segment crossing for tick sound
       const norm   = ((-rot % 360) + 360) % 360;
       const curSeg = Math.floor(norm / seg) % n;
       if (curSeg !== lastSegRef.current) {
-        const speed = Math.max(0, 1 - t); // 1 = fast, 0 = stopped
+        const speed = Math.max(0, 1 - t);
         playTick(audioRef.current, 500 + speed * 700);
         lastSegRef.current = curSeg;
       }
@@ -170,12 +213,56 @@ export default function LuckyWheel({ members, onSelect }) {
         setSpinning(false); setWinnerIdx(idx);
         setPtrBounce(true); setTimeout(() => setPtrBounce(false), 850);
         stopConfetti.current = launchConfetti(canvasRef.current);
+        playFanfare(audioRef.current);
       }
     };
     rafRef.current = requestAnimationFrame(animate);
   }, [spinning, n, seg]);
 
-  const reset  = () => { setWinnerIdx(null); stopConfetti.current?.(); stopConfetti.current = null; };
+  // Cập nhật ref mỗi khi spinWithPower thay đổi (để releaseCharge dùng mà không stale)
+  useEffect(() => { spinFnRef.current = spinWithPower; }, [spinWithPower]);
+
+  const startCharge = useCallback(() => {
+    if (spinning || n < 2 || isChargingRef.current) return;
+    if (!audioRef.current) audioRef.current = createAudioCtx();
+    audioRef.current?.resume?.();
+    chargeRef.current = 0;
+    chargeStartRef.current = performance.now();
+    isChargingRef.current = true;
+    setIsCharging(true);
+
+    const update = (now) => {
+      if (!isChargingRef.current) return;
+      const c = Math.min((now - chargeStartRef.current) / 2500, 1);
+      chargeRef.current = c;
+      // Cập nhật DOM trực tiếp — không gây re-render
+      if (powerBarRef.current) {
+        powerBarRef.current.style.width = `${c * 100}%`;
+        powerBarRef.current.style.background =
+          c < 0.4 ? '#22c55e' : c < 0.75 ? '#f59e0b' : '#ef4444';
+      }
+      if (powerLabelRef.current) {
+        const labels = ['🌀 Nhẹ', '💨 Vừa', '⚡ Mạnh', '🔥 Tối đa!'];
+        powerLabelRef.current.textContent = labels[c < 0.3 ? 0 : c < 0.6 ? 1 : c < 0.88 ? 2 : 3];
+      }
+      if (c < 1) chargeRafRef.current = requestAnimationFrame(update);
+    };
+    chargeRafRef.current = requestAnimationFrame(update);
+  }, [spinning, n]);
+
+  const releaseCharge = useCallback(() => {
+    if (!isChargingRef.current) return;
+    cancelAnimationFrame(chargeRafRef.current);
+    isChargingRef.current = false;
+    const elapsed = performance.now() - chargeStartRef.current;
+    // Nhấn nhanh (< 200ms) → tự động random lực vừa-mạnh
+    const power = elapsed < 200 ? 0.4 + rand() * 0.4 : chargeRef.current;
+    chargeRef.current = 0;
+    setIsCharging(false);
+    spinFnRef.current?.(power);
+  }, []);
+
+  const reset = () => { setWinnerIdx(null); stopConfetti.current?.(); stopConfetti.current = null; };
   const winner = winnerIdx !== null ? members[winnerIdx] : null;
 
   if (n === 0)
@@ -209,8 +296,13 @@ export default function LuckyWheel({ members, onSelect }) {
           100%{ transform: rotate(0deg); }
         }
         @keyframes wsegpulse { 0%,100%{opacity:.12} 50%{opacity:.44} }
-        @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
-        .wglow       { animation: wglow 1.1s ease-in-out infinite; }
+        @keyframes shimmer   { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+        @keyframes chargepulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+          50%     { box-shadow: 0 0 0 6px rgba(251,191,36,.35); }
+        }
+        .wglow         { animation: wglow 1.1s ease-in-out infinite; }
+        .charge-pulse  { animation: chargepulse .7s ease-in-out infinite; }
         .wpop        { animation: wpop .6s cubic-bezier(.22,1,.36,1) forwards; }
         .ptr-idle    { animation: ptridle 2.6s ease-in-out infinite; transform-origin: 50% 0; }
         .ptr-bounce  { animation: ptrbounce .85s cubic-bezier(.22,1,.36,1) forwards; transform-origin: 50% 0; }
@@ -418,15 +510,38 @@ export default function LuckyWheel({ members, onSelect }) {
 
         {/* ── Spin button ─────────────────────────────────────────── */}
         {!winner && (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3 w-full max-w-[280px]">
+
+            {/* Power bar — hiện khi đang giữ nút */}
+            {isCharging && (
+              <div className="w-full space-y-1.5 px-1">
+                <div className="flex justify-between items-center text-xs font-bold">
+                  <span className="text-gray-500">Lực quay</span>
+                  <span ref={powerLabelRef} className="text-green-600">🌀 Nhẹ</span>
+                </div>
+                <div className="h-5 bg-gray-100 rounded-full overflow-hidden border border-gray-200 shadow-inner">
+                  <div
+                    ref={powerBarRef}
+                    className="h-full rounded-full transition-colors duration-300"
+                    style={{ width: '0%', background: '#22c55e' }}
+                  />
+                </div>
+                <p className="text-[10px] text-center text-gray-400">Thả tay để quay</p>
+              </div>
+            )}
+
             <button
               type="button"
-              onClick={spin}
+              onPointerDown={startCharge}
+              onPointerUp={releaseCharge}
+              onPointerLeave={releaseCharge}
               disabled={spinning || n < 2}
-              className={`relative overflow-hidden px-14 py-4 rounded-2xl font-black text-lg
-                transition-all duration-150 ${
+              className={`relative overflow-hidden w-full py-4 rounded-2xl font-black text-lg
+                transition-all duration-150 select-none touch-none ${
                   spinning
                     ? 'bg-gradient-to-r from-amber-300 to-orange-400 text-white/80 cursor-not-allowed'
+                    : isCharging
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white scale-95 charge-pulse'
                     : n < 2
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500 text-white ' +
@@ -434,22 +549,31 @@ export default function LuckyWheel({ members, onSelect }) {
                       'hover:-translate-y-1 active:scale-95 active:translate-y-0'
                 }`}
             >
-              {/* Shimmer sweep on idle button */}
-              {!spinning && n >= 2 && (
+              {!spinning && !isCharging && n >= 2 && (
                 <span className="btn-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none"/>
               )}
               {spinning ? (
-                <span className="flex items-center gap-2.5">
+                <span className="flex items-center justify-center gap-2.5">
                   <svg className="animate-spin w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" opacity=".3"/>
                     <path fill="white" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/>
                   </svg>
                   Đang quay...
                 </span>
-              ) : '🎰 Quay ngay!'}
+              ) : isCharging ? (
+                <span className="flex items-center justify-center gap-2">⚡ Thả để quay!</span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">🎰 Giữ để quay!</span>
+              )}
             </button>
+
             {n < 2 && (
               <p className="text-xs text-gray-400">Cần ít nhất 2 thành viên để quay.</p>
+            )}
+            {!spinning && !isCharging && n >= 2 && (
+              <p className="text-[10px] text-gray-400 text-center">
+                Giữ lâu hơn = quay mạnh hơn
+              </p>
             )}
           </div>
         )}
