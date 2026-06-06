@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hui Pro — Xem trước logo</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background:#f0f0f0; padding:40px; }
+    h2 { color:#333; margin-bottom:8px; }
+    p  { color:#666; font-size:13px; margin:4px 0 24px; }
+    .row { display:flex; align-items:center; gap:24px; flex-wrap:wrap; margin-bottom:32px; }
+    .card { background:#fff; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,.1); text-align:center; }
+    .card.dark { background:#0c1322; }
+    .label { font-size:11px; color:#999; margin-top:10px; }
+    .dark .label { color:#666; }
+  </style>
+</head>
+<body>
+
+<h2>Logo — các kích thước trong app</h2>
+<p>Mở file này thẳng bằng trình duyệt (không cần server). Đây là chính xác logo sẽ hiện.</p>
+
+<div class="row">
+
+  <!-- 62px — Login page -->
+  <div class="card">
+    <div style="filter:drop-shadow(0 4px 14px rgba(255,149,0,.40))">
+      <svg width="62" height="62" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="a1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fbbf24"/>
+            <stop offset="100%" stop-color="#ea580c"/>
+          </linearGradient>
+          <linearGradient id="a2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fff" stop-opacity=".30"/>
+            <stop offset="75%" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <clipPath id="a3"><rect width="120" height="120" rx="26" ry="26"/></clipPath>
+        </defs>
+        <rect width="120" height="120" rx="26" ry="26" fill="url(#a1)"/>
+        <rect width="120" height="70" fill="url(#a2)" clip-path="url(#a3)"/>
+        <rect x="18" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+        <rect x="80" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+        <rect x="18" y="50" width="84" height="21" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+        <rect width="120" height="120" rx="26" ry="26" fill="none" stroke="#000" stroke-opacity=".10" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="label">62px — Đăng nhập</div>
+  </div>
+
+  <!-- 32px — Mobile header -->
+  <div class="card">
+    <svg width="32" height="32" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="b1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#ea580c"/>
+        </linearGradient>
+        <linearGradient id="b2" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fff" stop-opacity=".30"/>
+          <stop offset="75%" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="b3"><rect width="120" height="120" rx="26" ry="26"/></clipPath>
+      </defs>
+      <rect width="120" height="120" rx="26" ry="26" fill="url(#b1)"/>
+      <rect width="120" height="70" fill="url(#b2)" clip-path="url(#b3)"/>
+      <rect x="18" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+      <rect x="80" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+      <rect x="18" y="50" width="84" height="21" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+    </svg>
+    <div class="label">32px — Header mobile</div>
+  </div>
+
+  <!-- 28px — Sidebar -->
+  <div class="card dark">
+    <svg width="28" height="28" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="c1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#ea580c"/>
+        </linearGradient>
+        <linearGradient id="c2" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fff" stop-opacity=".30"/>
+          <stop offset="75%" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="c3"><rect width="120" height="120" rx="26" ry="26"/></clipPath>
+      </defs>
+      <rect width="120" height="120" rx="26" ry="26" fill="url(#c1)"/>
+      <rect width="120" height="70" fill="url(#c2)" clip-path="url(#c3)"/>
+      <rect x="18" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+      <rect x="80" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+      <rect x="18" y="50" width="84" height="21" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+    </svg>
+    <div class="label">28px — Sidebar (nền tối)</div>
+  </div>
+
+</div>
+
+<h2>Icon màn hình chính (iOS / Android)</h2>
+<p>Đây là thiết kế icon 180×180 sẽ hiển thị khi thêm vào Home Screen.</p>
+
+<div class="row">
+  <!-- 180px — Apple touch icon preview -->
+  <div class="card">
+    <svg width="180" height="180" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="border-radius:40px;overflow:hidden">
+      <defs>
+        <linearGradient id="d1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#ea580c"/>
+        </linearGradient>
+        <linearGradient id="d2" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fff" stop-opacity=".30"/>
+          <stop offset="75%" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="d3"><rect width="120" height="120" rx="26" ry="26"/></clipPath>
+      </defs>
+      <rect width="120" height="120" rx="26" ry="26" fill="url(#d1)"/>
+      <rect width="120" height="70" fill="url(#d2)" clip-path="url(#d3)"/>
+      <rect x="18" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+      <rect x="80" y="20" width="22" height="80" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+      <rect x="18" y="50" width="84" height="21" rx="7" ry="7" fill="#fff" fill-opacity=".95"/>
+    </svg>
+    <div class="label">180px — Giả lập iOS icon (bo góc bởi browser)</div>
+  </div>
+
+  <!-- PNG preview -->
+  <div class="card">
+    <img src="public/apple-touch-icon.png" width="180" height="180"
+         style="border-radius:40px;display:block;"
+         alt="apple-touch-icon.png">
+    <div class="label">apple-touch-icon.png thực tế</div>
+  </div>
+
+  <!-- 512px reduced to 128px for preview -->
+  <div class="card">
+    <img src="public/icon-512.png" width="128" height="128"
+         style="border-radius:28px;display:block;"
+         alt="icon-512.png">
+    <div class="label">icon-512.png (PWA)</div>
+  </div>
+</div>
+
+<h2>Favicon</h2>
+<div class="row">
+  <div class="card">
+    <img src="public/favicon-32.png" width="32" height="32" alt="favicon">
+    <div class="label">favicon-32.png</div>
+  </div>
+  <div class="card">
+    <img src="public/favicon-32.png" width="64" height="64" style="image-rendering:pixelated" alt="favicon 2x">
+    <div class="label">favicon-32.png × 2 (zoom)</div>
+  </div>
+</div>
+
+<hr style="margin:32px 0; border:none; border-top:1px solid #ddd">
+<p style="color:#aaa;font-size:12px">
+  Nếu logo hiển thị đúng ở đây → vấn đề là chưa push/deploy code mới lên server.<br>
+  Chạy <code>git push origin main</code> rồi rebuild Docker image.
+</p>
+
+</body>
+</html>
