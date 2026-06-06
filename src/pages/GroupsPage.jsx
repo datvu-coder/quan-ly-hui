@@ -442,7 +442,7 @@ export default function GroupsPage() {
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
                 <p className="text-amber-700 text-sm font-medium mb-2">{preview.label}</p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                  <div>Quỹ góp (gross): {formatVnd(preview.gross)}</div>
+                  <div>Tổng tiền góp: {formatVnd(preview.gross)}</div>
                   <div>Hoa hồng: {formatVnd(preview.commission)}</div>
                   {preview.earlyPenalty != null ? (
                     <div>Khấu trừ (ước): {formatVnd(preview.earlyPenalty)}</div>

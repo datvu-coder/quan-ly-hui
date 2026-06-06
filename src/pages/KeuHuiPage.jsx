@@ -426,7 +426,7 @@ export default function KeuHuiPage() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>Quỹ kỳ {watchPeriod} (gross)</span>
+                  <span>Tổng tiền góp kỳ {watchPeriod}</span>
                   <span className="font-medium">{formatVnd(gross)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -564,7 +564,7 @@ export default function KeuHuiPage() {
               </p>
             )}
 
-            {/* Gross calculation */}
+            {/* Tính tổng tiền góp */}
             {(() => {
               const topRate = sortedBids[0]?.bidRate ?? 0;
               const memberIds = membersForGroup(detailGroup.id).map((m) => m.id);
@@ -581,7 +581,7 @@ export default function KeuHuiPage() {
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <p className="text-gray-500 mb-0.5">Quỹ kỳ (gross)</p>
+                      <p className="text-gray-500 mb-0.5">Tổng tiền góp</p>
                       <p className="font-semibold text-gray-900">{formatVnd(gross)}</p>
                     </div>
                     <div>
@@ -1095,7 +1095,7 @@ export default function KeuHuiPage() {
               return (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-1 text-xs">
                   <p className="font-medium text-amber-700">Tổng kết</p>
-                  <div className="flex justify-between"><span>Gross</span><span>{formatVnd(gross)}</span></div>
+                  <div className="flex justify-between"><span>Tổng tiền góp</span><span>{formatVnd(gross)}</span></div>
                   <div className="flex justify-between text-red-500"><span>Hoa hồng</span><span>−{formatVnd(commission)}</span></div>
                   {detailGroup.type === 'live' && <div className="flex justify-between text-orange-500"><span>Lãi kêu ({rate}%)</span><span>−{formatVnd(interest)}</span></div>}
                   <div className="flex justify-between font-bold text-gray-900 border-t border-amber-200 pt-1">
