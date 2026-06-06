@@ -22,9 +22,16 @@ const PALETTE = [
   ['#475569', '#CBD5E1'],
 ];
 
-// Quintic ease-out: fast start → natural deceleration
-function easeOutQuint(t) {
-  return 1 - Math.pow(1 - t, 5);
+// Cubic ease-out: gentler deceleration — wheel stays visibly spinning longer
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// Cryptographically secure random — không thể đoán/dự đoán được
+function rand() {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return buf[0] / 0x100000000; // [0, 1)
 }
 
 function segPath(startDeg, endDeg, r = R) {
@@ -60,18 +67,18 @@ function launchConfetti(canvas) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width; const H = canvas.height;
   const particles = Array.from({ length: 95 }, (_, i) => ({
-    x: W * 0.5 + (Math.random() - 0.5) * W * 0.45,
+    x: W * 0.5 + (rand() - 0.5) * W * 0.45,
     y: H * 0.32,
-    vx: (Math.random() - 0.5) * 10,
-    vy: -Math.random() * 15 - 2,
-    w: Math.random() * 8 + 3,
-    h: Math.random() * 5 + 2,
-    color: PALETTE[i % PALETTE.length][Math.random() > 0.45 ? 0 : 1],
-    rot: Math.random() * Math.PI * 2,
-    rv: (Math.random() - 0.5) * 0.28,
-    gravity: 0.36 + Math.random() * 0.24,
+    vx: (rand() - 0.5) * 10,
+    vy: -rand() * 15 - 2,
+    w: rand() * 8 + 3,
+    h: rand() * 5 + 2,
+    color: PALETTE[i % PALETTE.length][rand() > 0.45 ? 0 : 1],
+    rot: rand() * Math.PI * 2,
+    rv: (rand() - 0.5) * 0.28,
+    gravity: 0.36 + rand() * 0.24,
     alpha: 1,
-    circle: Math.random() > 0.55,
+    circle: rand() > 0.55,
   }));
   let raf;
   const draw = () => {
@@ -129,18 +136,20 @@ export default function LuckyWheel({ members, onSelect }) {
     cancelAnimationFrame(rafRef.current);
     setWinnerIdx(null); setPtrBounce(false); setSpinning(true);
 
-    const idx        = Math.floor(Math.random() * n);
-    const baseTarget = -(idx * seg + seg / 2);
+    const idx        = Math.floor(rand() * n);
+    // Land at a random position within the winning segment (not always at center)
+    const landOffset = (rand() - 0.5) * seg * 0.6; // ±30% từ tâm ô
+    const baseTarget = -(idx * seg + seg / 2 + landOffset);
     const diff       = ((baseTarget - rotRef.current) % 360 + 360) % 360 || 360;
-    const extraSpins = (6 + Math.floor(Math.random() * 5)) * 360;
+    const extraSpins = (8 + Math.floor(rand() * 6)) * 360; // 8–13 vòng
     const totalDelta = diff + extraSpins;
     const startRot   = rotRef.current;
-    const duration   = 5800 + Math.random() * 1600; // 5.8 – 7.4 s
+    const duration   = 7000 + rand() * 2000; // 7–9 s — đủ dài để cubic thể hiện
     const startTime  = performance.now();
 
     const animate = (now) => {
       const t   = Math.min((now - startTime) / duration, 1);
-      const rot = startRot + totalDelta * easeOutQuint(t);
+      const rot = startRot + totalDelta * easeOutCubic(t);
 
       if (wheelGRef.current)
         wheelGRef.current.setAttribute('transform', `rotate(${rot} ${CX} ${CY})`);
@@ -176,8 +185,8 @@ export default function LuckyWheel({ members, onSelect }) {
     <>
       <style>{`
         @keyframes wglow {
-          0%,100% { filter: drop-shadow(0 0 8px rgba(251,191,36,.5)); }
-          50%      { filter: drop-shadow(0 0 34px rgba(251,191,36,.95)) drop-shadow(0 0 60px rgba(251,191,36,.35)); }
+          0%,100% { filter: drop-shadow(0 0 7px rgba(251,191,36,.45)); }
+          50%      { filter: drop-shadow(0 0 22px rgba(251,191,36,.85)); }
         }
         @keyframes wpop {
           0%   { opacity:0; transform:scale(.7) translateY(20px); }
@@ -186,27 +195,26 @@ export default function LuckyWheel({ members, onSelect }) {
           100% { opacity:1; transform:scale(1) translateY(0); }
         }
         @keyframes ptridle {
-          0%,100% { transform:translateX(-50%) translateY(0); }
-          50%     { transform:translateX(-50%) translateY(-3px); }
+          0%,100% { transform: rotate(0deg); }
+          40%     { transform: rotate(-2deg); }
+          80%     { transform: rotate(2deg); }
         }
         @keyframes ptrbounce {
-          0%  { transform:translateX(-50%) rotate(0deg); }
-          20% { transform:translateX(-50%) rotate(-20deg); }
-          45% { transform:translateX(-50%) rotate(13deg); }
-          65% { transform:translateX(-50%) rotate(-7deg); }
-          80% { transform:translateX(-50%) rotate(4deg); }
-          92% { transform:translateX(-50%) rotate(-2deg); }
-          100%{ transform:translateX(-50%) rotate(0deg); }
+          0%  { transform: rotate(0deg); }
+          18% { transform: rotate(-24deg); }
+          40% { transform: rotate(15deg); }
+          58% { transform: rotate(-8deg); }
+          73% { transform: rotate(4deg); }
+          86% { transform: rotate(-2deg); }
+          100%{ transform: rotate(0deg); }
         }
         @keyframes wsegpulse { 0%,100%{opacity:.12} 50%{opacity:.44} }
-        @keyframes rimdotblink { 0%,100%{opacity:.45} 50%{opacity:1} }
         @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
-        .wglow       { animation: wglow .72s ease-in-out infinite; }
+        .wglow       { animation: wglow 1.1s ease-in-out infinite; }
         .wpop        { animation: wpop .6s cubic-bezier(.22,1,.36,1) forwards; }
-        .ptr-idle    { animation: ptridle 2.3s ease-in-out infinite; }
-        .ptr-bounce  { animation: ptrbounce .82s cubic-bezier(.22,1,.36,1) forwards; }
+        .ptr-idle    { animation: ptridle 2.6s ease-in-out infinite; transform-origin: 50% 0; }
+        .ptr-bounce  { animation: ptrbounce .85s cubic-bezier(.22,1,.36,1) forwards; transform-origin: 50% 0; }
         .wseg-pulse  { animation: wsegpulse 1.25s ease-in-out infinite; }
-        .rim-blink   { animation: rimdotblink .55s ease-in-out infinite; }
         .btn-shimmer { animation: shimmer 2.4s ease-in-out infinite; }
       `}</style>
 
@@ -223,42 +231,45 @@ export default function LuckyWheel({ members, onSelect }) {
             width={780} height={780}
           />
 
-          {/* ── Pointer ── */}
+          {/* ── Pointer: gem on top (pivot), sharp tip points DOWN into wheel ── */}
           <div
-            className={`absolute left-1/2 z-20 pointer-events-none ${
+            className={`absolute z-20 pointer-events-none ${
               ptrBounce ? 'ptr-bounce' : spinning ? '' : 'ptr-idle'
             }`}
-            style={{ top: -5, transform: 'translateX(-50%)' }}
+            style={{ top: -10, left: '50%', marginLeft: '-19px' }}
           >
-            <svg width={38} height={56} viewBox="0 0 38 56" overflow="visible">
+            <svg width={38} height={58} viewBox="0 0 38 58" overflow="visible">
               <defs>
-                <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+                <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%"   stopColor="#FEE2E2"/>
-                  <stop offset="40%"  stopColor="#F87171"/>
+                  <stop offset="45%"  stopColor="#F87171"/>
                   <stop offset="100%" stopColor="#991B1B"/>
                 </linearGradient>
-                <filter id="psh" x="-60%" y="-30%" width="220%" height="220%">
-                  <feDropShadow dx="0" dy="5" stdDeviation="4.5" floodColor="#7f1d1d" floodOpacity=".65"/>
+                <filter id="psh" x="-80%" y="-40%" width="260%" height="250%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#7f1d1d" floodOpacity=".6"/>
                 </filter>
               </defs>
-              {/* Arrow body */}
-              <polygon points="19,5 34,49 19,40 4,49" fill="url(#pg)" filter="url(#psh)"/>
-              <polygon points="19,5 34,49 19,40 4,49" fill="none" stroke="rgba(255,255,255,.85)" strokeWidth="1.5" strokeLinejoin="round"/>
-              {/* Tip highlight */}
-              <polygon points="19,5 25,21 19,19 13,21" fill="rgba(255,255,255,.55)"/>
-              {/* Base gem */}
-              <circle cx="19" cy="49" r="6.5" fill="white" stroke="#DC2626" strokeWidth="2.5"/>
-              <circle cx="19" cy="49" r="3.2" fill="#FCA5A5"/>
-              <circle cx="17" cy="47" r="1.2" fill="white" opacity=".7"/>
+              {/* Gem at TOP — this is the hinge/pivot point (transform-origin: 50% 0) */}
+              <circle cx="19" cy="9" r="8" fill="white" stroke="#DC2626" strokeWidth="2.5" filter="url(#psh)"/>
+              <circle cx="19" cy="9" r="4"  fill="#FCA5A5"/>
+              <circle cx="17" cy="7" r="1.5" fill="white" opacity=".75"/>
+              {/* Arrow body: wide at top (y≈14), narrow tip at bottom (y=54) */}
+              <polygon points="19,54 4,14 19,22 34,14" fill="url(#pg)" filter="url(#psh)"/>
+              <polygon points="19,54 4,14 19,22 34,14" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="1.4" strokeLinejoin="round"/>
+              {/* Shoulder highlight */}
+              <polygon points="4,14 19,14 34,14 19,20" fill="rgba(255,255,255,.4)"/>
             </svg>
           </div>
 
           {/* ── SVG Wheel ── */}
           <svg
-            style={{ width: '100%', height: 'auto' }}
+            style={{
+              width: '100%', height: 'auto',
+              ...(spinning ? { filter: 'drop-shadow(0 0 18px rgba(251,191,36,.7))' } : {}),
+            }}
             viewBox={`0 0 ${SIZE} ${SIZE}`}
             overflow="visible"
-            className={spinning ? 'wglow' : ''}
+            className={!spinning && !winner ? 'wglow' : ''}
           >
             <defs>
               {/* Per-segment radial gradients for 3-D depth */}
@@ -307,8 +318,7 @@ export default function LuckyWheel({ members, onSelect }) {
               const cx = CX + (R + 11) * Math.cos(toRad(a));
               const cy = CY + (R + 11) * Math.sin(toRad(a));
               return (
-                <g key={i} className={spinning ? 'rim-blink' : ''}
-                  style={spinning ? { animationDelay: `${(i * 0.07).toFixed(2)}s` } : {}}>
+                <g key={i}>
                   <circle cx={cx} cy={cy} r={4.5} fill="#FEF3C7" stroke="#B45309" strokeWidth="1.3"/>
                   <circle cx={cx - 1} cy={cy - 1} r={1.5} fill="rgba(255,255,255,.7)"/>
                 </g>
