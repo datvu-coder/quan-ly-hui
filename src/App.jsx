@@ -321,7 +321,9 @@ export default function App() {
 
   // ── Sync status: 'idle' | 'saving' | 'synced' | 'offline' ───────────
   const [syncStatus, setSyncStatus] = useState('idle');
-  const syncClearRef = useRef(null);
+  const syncClearRef   = useRef(null);
+  const pendingSaveRef = useRef(false);  // true khi có local change chưa push xong
+  const importingRef   = useRef(false);  // true trong khi importBundle từ server (tránh trigger auto-save)
 
   const markSynced = useCallback(() => {
     setSyncStatus('synced');
@@ -371,18 +373,57 @@ export default function App() {
   useEffect(() => {
     let saveTimer;
     const unsub = useHuiStore.subscribe((state) => {
-      // Skip if page is about to reload (logo click) or store not yet ready
-      if (!state.initialized || window.__huiReloading) return;
+      // Bỏ qua nếu đang import từ server hoặc chưa sẵn sàng
+      if (!state.initialized || window.__huiReloading || importingRef.current) return;
       clearTimeout(saveTimer);
+      pendingSaveRef.current = true;
       setSyncStatus('saving');
       saveTimer = setTimeout(async () => {
         const bundle = useHuiStore.getState().exportBundle();
         const ok = await pushToServer(bundle);
+        pendingSaveRef.current = false;
         if (ok) markSynced(); else setSyncStatus('offline');
       }, 1500);
     });
     return () => { unsub(); clearTimeout(saveTimer); };
   }, [markSynced]);
+
+  // ── Polling: pull server data mỗi 5s để đồng bộ mọi thiết bị ────────
+  useEffect(() => {
+    if (!hydrated) return;
+
+    // Fingerprint nhẹ: chỉ hash các trường thay đổi thường xuyên
+    function fingerprint(bundle) {
+      if (!bundle) return '';
+      return [
+        ...(bundle.sessions ?? []).map((s) => `s${s.id}:${s.status}:${s.bids?.length ?? 0}:${s.winnerId ?? ''}`),
+        ...(bundle.transactions ?? []).map((t) => `t${t.id}:${t.status}`),
+        ...(bundle.paymentRequests ?? []).map((r) => `r${r.id}:${r.status}`),
+        ...(bundle.members ?? []).map((m) => `m${m.id}`),
+        ...(bundle.groups ?? []).map((g) => `g${g.id}`),
+      ].sort().join('|');
+    }
+
+    let lastFp = fingerprint(useHuiStore.getState().exportBundle());
+
+    const poll = async () => {
+      // Không pull khi đang có local change chưa push — tránh ghi đè
+      if (pendingSaveRef.current) return;
+      const serverData = await fetchServerData();
+      if (!serverData?.groups) return;
+      const serverFp = fingerprint(serverData);
+      if (serverFp === lastFp) return; // không có gì mới
+      // Import: dùng flag để auto-save không bị trigger
+      importingRef.current = true;
+      useHuiStore.getState().importBundle(serverData);
+      importingRef.current = false;
+      lastFp = serverFp;
+      markSynced();
+    };
+
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, [hydrated, markSynced]);
 
   // Close more sheet on desktop resize
   useEffect(() => {
