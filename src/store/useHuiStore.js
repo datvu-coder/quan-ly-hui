@@ -461,6 +461,7 @@ export const useHuiStore = create(
           memberships: s.memberships.filter((x) => x.groupId !== id),
           transactions: s.transactions.filter((x) => x.groupId !== id),
           sessions: s.sessions.filter((x) => x.groupId !== id),
+          paymentRequests: s.paymentRequests.filter((x) => x.groupId !== id),
         }));
       },
 
@@ -490,6 +491,11 @@ export const useHuiStore = create(
           members: s.members.filter((m) => m.id !== id),
           memberships: s.memberships.filter((x) => x.memberId !== id),
           transactions: s.transactions.filter((x) => x.memberId !== id),
+          paymentRequests: s.paymentRequests.filter((x) => x.memberId !== id),
+          sessions: s.sessions.map((sess) => ({
+            ...sess,
+            bids: sess.bids.filter((b) => b.memberId !== id),
+          })),
         }));
       },
 

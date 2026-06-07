@@ -34,6 +34,7 @@ const statusUiFallback = { label: 'Không rõ', class: 'bg-gray-100 text-gray-60
 export default function TransactionsPage() {
   const transactions = useHuiStore((s) => s.transactions);
   const groups = useHuiStore((s) => s.groups);
+  const memberships = useHuiStore((s) => s.memberships); // reactive → re-render when members added/removed
   const addTransaction = useHuiStore((s) => s.addTransaction);
   const deleteTransaction = useHuiStore((s) => s.deleteTransaction);
   const membersForGroup = useHuiStore((s) => s.membersForGroup);

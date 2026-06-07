@@ -6,7 +6,7 @@ import {
   QrCode, Send, Copy, XCircle,
 } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
-import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
+import { formatDate, formatVnd, formatVndCompact, cycleLabel } from '../lib/format.js';
 import { bankDisplayName, buildVietQrUrl } from '../lib/banks.js';
 import { calcSessionNet, calcPeriodGross } from '../lib/period.js';
 
@@ -14,10 +14,9 @@ const statusLabel = { active: 'Đang hoạt động', warning: 'Cần chú ý', 
 const statusCls   = { active: 'bg-green-100 text-green-700', warning: 'bg-amber-100 text-amber-700', debt: 'bg-red-100 text-red-700', left: 'bg-gray-100 text-gray-500' };
 
 // ── Bid panel: member submits / edits / cancels their bid ─────────────────────
-function BidPanel({ group, session, memberId }) {
-  const updateSession   = useHuiStore((s) => s.updateSession);
-  const sessions        = useHuiStore((s) => s.sessions);
-  const membersForGroup = useHuiStore((s) => s.membersForGroup);
+function BidPanel({ group, session, memberId, memberIds }) {
+  const updateSession = useHuiStore((s) => s.updateSession);
+  const sessions      = useHuiStore((s) => s.sessions);
   const isLive = group.type === 'live';
 
   const [editing, setEditing]   = useState(false);
@@ -25,12 +24,8 @@ function BidPanel({ group, session, memberId }) {
   const [error, setError]       = useState('');
 
   // Gross thực tế của kỳ này (tính đúng số người đã hốt, mức đóng chết/sống)
-  const memberIds = useMemo(
-    () => membersForGroup(group.id).map((m) => m.id),
-    [membersForGroup, group.id]
-  );
   const gross = useMemo(
-    () => calcPeriodGross(group, sessions, memberIds, session.periodNumber),
+    () => calcPeriodGross(group, sessions, memberIds ?? [], session.periodNumber),
     [group, sessions, memberIds, session.periodNumber]
   );
 
@@ -402,16 +397,21 @@ function PaymentSection({ group, session, memberId, iWonPeriod }) {
 
 // ── Main portal ───────────────────────────────────────────────────────────────
 export default function MemberPortal({ memberId, onLogout }) {
-  const memberById      = useHuiStore((s) => s.memberById);
-  const groupsForMember = useHuiStore((s) => s.groupsForMember);
-  const membersForGroup = useHuiStore((s) => s.membersForGroup);
+  const members         = useHuiStore((s) => s.members);
+  const groups          = useHuiStore((s) => s.groups);
+  const memberships     = useHuiStore((s) => s.memberships);
   const sessions        = useHuiStore((s) => s.sessions);
   const transactions    = useHuiStore((s) => s.transactions);
+  const memberById      = useHuiStore((s) => s.memberById);      // calls get() → always fresh
+  const membersForGroup = useHuiStore((s) => s.membersForGroup); // calls get() → always fresh
 
   const member   = memberById(memberId);
   const [tab, setTab] = useState('groups');
 
-  const myGroups = useMemo(() => groupsForMember(memberId), [memberId, groupsForMember]);
+  const myGroups = useMemo(() => {
+    const gids = new Set(memberships.filter((x) => x.memberId === memberId).map((x) => x.groupId));
+    return groups.filter((g) => gids.has(g.id));
+  }, [memberId, groups, memberships]);
 
   const groupData = useMemo(() => myGroups.map((g) => {
     const groupSessions  = sessions.filter((s) => s.groupId === g.id);
@@ -441,14 +441,15 @@ export default function MemberPortal({ memberId, onLogout }) {
     const remaining = membersForGroup(g.id).filter((m) => !wonIds.has(m.id));
     const iAmEligible = remaining.some((m) => m.id === memberId);
 
-    // Gross thực tế kỳ đang mở (dùng cho hiển thị tab Kêu hụi)
-    const allMemberIds = membersForGroup(g.id).map((m) => m.id);
+    // memberIds dùng cho BidPanel và calcPeriodGross (luôn fresh vì membersForGroup gọi get())
+    const memberIds = membersForGroup(g.id).map((m) => m.id);
     const openGross = openSession
-      ? calcPeriodGross(g, sessions, allMemberIds, openSession.periodNumber)
+      ? calcPeriodGross(g, sessions, memberIds, openSession.periodNumber)
       : null;
 
-    return { group: g, openSession, iWonPeriod, myPaidThisPeriod, history, remaining, iAmEligible, openGross };
-  }), [myGroups, sessions, transactions, memberId, memberById, membersForGroup]);
+    return { group: g, openSession, iWonPeriod, myPaidThisPeriod, history, remaining, iAmEligible, openGross, memberIds };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [myGroups, sessions, transactions, memberId, members, memberships]);
 
   const myTxs = useMemo(() =>
     transactions
@@ -470,55 +471,55 @@ export default function MemberPortal({ memberId, onLogout }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
 
       {/* Header */}
-      <header className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <LogoIcon size={40} />
-          <div>
-            <p className="text-xs text-slate-400">Xin chào,</p>
-            <p className="font-bold text-white text-sm">{member.name}</p>
+      <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <LogoIcon size={36} className="shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Xin chào</p>
+            <p className="font-bold text-white text-sm truncate">{member.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusCls[member.status] ?? statusCls.active}`}>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusCls[member.status] ?? statusCls.active}`}>
             {statusLabel[member.status] ?? member.status}
           </span>
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
           >
-            <LogOut size={14} /> Đăng xuất
+            <LogOut size={13} /> <span className="hidden sm:inline">Đăng xuất</span>
           </button>
         </div>
       </header>
 
       {/* Summary */}
-      <div className="bg-slate-800 px-5 py-4 grid grid-cols-3 gap-3 text-white text-center">
+      <div className="bg-slate-800 px-5 py-4 grid grid-cols-3 gap-2 text-white text-center">
         <div>
-          <p className="text-xs text-slate-400 mb-0.5">Dây tham gia</p>
-          <p className="text-xl font-bold text-amber-400">{myGroups.length}</p>
+          <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Dây tham gia</p>
+          <p className="text-2xl font-bold text-amber-400">{myGroups.length}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 mb-0.5">Đã góp quỹ</p>
-          <p className="text-xl font-bold text-orange-400">{formatVnd(totalContrib)}</p>
+          <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Đã góp</p>
+          <p className="text-lg font-bold text-orange-400 leading-tight">{formatVndCompact(totalContrib)}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 mb-0.5">Đã hốt</p>
-          <p className="text-xl font-bold text-emerald-400">{formatVnd(totalReceived)}</p>
+          <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Đã hốt</p>
+          <p className="text-lg font-bold text-emerald-400 leading-tight">{formatVndCompact(totalReceived)}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 flex px-4">
+      <div className="bg-white border-b border-gray-200 flex px-2 overflow-x-auto">
         {tabs.map(({ key, label, badge }) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`relative px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               tab === key
                 ? 'border-amber-400 text-amber-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -535,7 +536,7 @@ export default function MemberPortal({ memberId, onLogout }) {
       </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
 
         {/* ── Dây hụi tab ── */}
         {tab === 'groups' && (
@@ -555,8 +556,8 @@ export default function MemberPortal({ memberId, onLogout }) {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs text-gray-400">Mệnh giá</p>
-                      <p className="font-bold text-amber-600 text-sm">{formatVnd(g.contributionAmount)}/kỳ</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Mệnh giá</p>
+                      <p className="font-bold text-amber-600 text-sm">{formatVndCompact(g.contributionAmount)}/kỳ</p>
                     </div>
                   </div>
                 </div>
@@ -580,7 +581,7 @@ export default function MemberPortal({ memberId, onLogout }) {
                           </p>
                         </div>
                       </div>
-                      <span className="text-xs font-semibold text-gray-600">{formatVnd(g.contributionAmount)}</span>
+                      <span className="text-xs font-semibold text-gray-600">{formatVndCompact(g.contributionAmount)}</span>
                     </div>
                   ) : (
                     <p className="text-xs text-gray-400 italic">Chưa có phiên kêu hụi đang mở.</p>
@@ -631,10 +632,10 @@ export default function MemberPortal({ memberId, onLogout }) {
                           <div key={h.period} className={`flex items-center justify-between text-xs px-3 py-2 rounded-lg ${
                             h.isMe ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-100'
                           }`}>
-                            <span className={h.isMe ? 'font-semibold text-amber-700' : 'text-gray-500'}>Kỳ {h.period}</span>
-                            <span className={h.isMe ? 'font-bold text-amber-800' : 'text-gray-700'}>{h.winnerName}{h.isMe && ' (bạn)'}</span>
+                            <span className={`shrink-0 ${h.isMe ? 'font-semibold text-amber-700' : 'text-gray-500'}`}>Kỳ {h.period}</span>
+                            <span className={`truncate mx-2 ${h.isMe ? 'font-bold text-amber-800' : 'text-gray-700'}`}>{h.winnerName}{h.isMe && ' (bạn)'}</span>
                             {h.net != null && (
-                              <span className={`font-medium ${h.isMe ? 'text-emerald-600' : 'text-gray-400'}`}>{formatVnd(h.net)}</span>
+                              <span className={`shrink-0 font-semibold ${h.isMe ? 'text-emerald-600' : 'text-gray-400'}`}>{formatVndCompact(h.net)}</span>
                             )}
                           </div>
                         ))}
@@ -659,7 +660,7 @@ export default function MemberPortal({ memberId, onLogout }) {
 
             {groupData
               .filter(({ openSession }) => !!openSession)
-              .map(({ group: g, openSession, iWonPeriod, iAmEligible, openGross }) => (
+              .map(({ group: g, openSession, iWonPeriod, iAmEligible, openGross, memberIds }) => (
                 <div key={g.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -677,16 +678,16 @@ export default function MemberPortal({ memberId, onLogout }) {
                   <div className="p-4 space-y-4">
                     {/* Bid stats */}
                     <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                      <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5">
-                        <p className="text-gray-400 mb-0.5">Tổng quỹ</p>
-                        <p className="font-bold text-gray-900">{formatVnd(openGross ?? 0)}</p>
+                      <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5 px-1">
+                        <p className="text-gray-400 mb-0.5 whitespace-nowrap">Tổng quỹ</p>
+                        <p className="font-bold text-gray-900">{formatVndCompact(openGross ?? 0)}</p>
                       </div>
-                      <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5">
-                        <p className="text-gray-400 mb-0.5">Nhận được</p>
-                        <p className="font-bold text-emerald-600">{formatVnd(calcSessionNet(g, 0, openGross).net)}</p>
+                      <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5 px-1">
+                        <p className="text-gray-400 mb-0.5 whitespace-nowrap">Nhận được</p>
+                        <p className="font-bold text-emerald-600">{formatVndCompact(calcSessionNet(g, 0, openGross).net)}</p>
                       </div>
-                      <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5">
-                        <p className="text-gray-400 mb-0.5">Đã kêu</p>
+                      <div className="rounded-lg bg-gray-50 border border-gray-100 py-2.5 px-1">
+                        <p className="text-gray-400 mb-0.5 whitespace-nowrap">Đã kêu</p>
                         <p className="font-bold text-amber-600">{openSession.bids.length} người</p>
                       </div>
                     </div>
@@ -700,7 +701,7 @@ export default function MemberPortal({ memberId, onLogout }) {
                     ) : !iAmEligible ? (
                       <p className="text-sm text-gray-400 text-center py-2">Bạn không còn đủ điều kiện hốt kỳ này.</p>
                     ) : (
-                      <BidPanel group={g} session={openSession} memberId={memberId} />
+                      <BidPanel group={g} session={openSession} memberId={memberId} memberIds={memberIds} />
                     )}
 
                     {/* Live hui: leaderboard */}
@@ -744,9 +745,13 @@ export default function MemberPortal({ memberId, onLogout }) {
               {myTxs.map((t) => {
                 const isContrib = t.kind === 'contribution';
                 return (
-                  <div key={t.id} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+                  <div key={t.id} className={`bg-white rounded-xl border px-4 py-3 flex items-center justify-between gap-3 ${
+                    t.status === 'pending' ? 'border-amber-200' : t.status === 'rejected' ? 'border-red-200' : 'border-gray-200'
+                  }`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isContrib ? 'bg-red-50' : 'bg-green-50'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        isContrib ? 'bg-red-50' : 'bg-green-50'
+                      }`}>
                         {isContrib
                           ? <TrendingDown size={15} className="text-red-500" />
                           : <TrendingUp size={15} className="text-green-600" />}
@@ -755,11 +760,21 @@ export default function MemberPortal({ memberId, onLogout }) {
                         <p className="text-sm font-medium text-gray-800 truncate">
                           {t.notes || (isContrib ? `Góp kỳ ${t.periodNumber}` : `Hốt kỳ ${t.periodNumber}`)}
                         </p>
-                        <p className="text-xs text-gray-400">{formatDate(t.date)}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <p className="text-xs text-gray-400">{formatDate(t.date)}</p>
+                          {t.status === 'pending' && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Chờ xác nhận</span>
+                          )}
+                          {t.status === 'rejected' && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Bị từ chối</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className={`text-sm font-bold ${isContrib ? 'text-red-500' : 'text-emerald-600'}`}>
+                      <p className={`text-sm font-bold ${
+                        t.status === 'rejected' ? 'text-gray-400 line-through' : isContrib ? 'text-red-500' : 'text-emerald-600'
+                      }`}>
                         {isContrib ? '−' : '+'}{formatVnd(t.amount)}
                       </p>
                       <p className="text-xs text-gray-400">{isContrib ? 'Góp quỹ' : 'Hốt hụi'}</p>

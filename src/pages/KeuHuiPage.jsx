@@ -24,6 +24,7 @@ const statusBadge = {
 export default function KeuHuiPage() {
   const groups = useHuiStore((s) => s.groups);
   const sessions = useHuiStore((s) => s.sessions);
+  const memberships = useHuiStore((s) => s.memberships); // reactive → triggers re-render on membership change
   const addSession = useHuiStore((s) => s.addSession);
   const updateSession = useHuiStore((s) => s.updateSession);
   const deleteSession = useHuiStore((s) => s.deleteSession);
@@ -87,7 +88,7 @@ export default function KeuHuiPage() {
     if (!detailGroup || !detailSession) return 0;
     const mids = membersForGroup(detailGroup.id).map((m) => m.id);
     return calcPeriodGross(detailGroup, sessions, mids, detailSession.periodNumber);
-  }, [detailGroup, detailSession, sessions, membersForGroup]);
+  }, [detailGroup, detailSession, sessions, memberships]);
 
   // Members who haven't won yet in this group (eligible to bid/win)
   const eligibleMembers = useMemo(() => {
@@ -98,7 +99,7 @@ export default function KeuHuiPage() {
         .map((s) => s.winnerId)
     );
     return membersForGroup(detailGroup.id).filter((m) => !wonIds.has(m.id));
-  }, [detailGroup, sessions, membersForGroup]);
+  }, [detailGroup, sessions, memberships]);
 
   // Members not yet in the bids list
   const unbidMembers = useMemo(() => {
