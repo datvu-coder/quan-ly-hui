@@ -383,7 +383,7 @@ export default function App() {
         const ok = await pushToServer(bundle);
         pendingSaveRef.current = false;
         if (ok) markSynced(); else setSyncStatus('offline');
-      }, 1500);
+      }, 800);
     });
     return () => { unsub(); clearTimeout(saveTimer); };
   }, [markSynced]);
@@ -421,7 +421,7 @@ export default function App() {
       markSynced();
     };
 
-    const id = setInterval(poll, 5000);
+    const id = setInterval(poll, 2000);
     return () => clearInterval(id);
   }, [hydrated, markSynced]);
 
