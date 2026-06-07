@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle, Settings2, Eye } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle, Settings2, Eye, QrCode } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import LuckyWheel from '../components/LuckyWheel.jsx';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
 import { currentPeriodNumber, calcSessionNet, calcPeriodGross, calcPeriodGrossEstimate } from '../lib/period.js';
+import { buildVietQrUrl } from '../lib/banks.js';
 
 const createSchema = z.object({
   groupId: z.string().min(1, 'Chọn dây hụi'),
@@ -34,6 +35,7 @@ export default function KeuHuiPage() {
   const membersForGroup = useHuiStore((s) => s.membersForGroup);
   const memberById = useHuiStore((s) => s.memberById);
   const groupById = useHuiStore((s) => s.groupById);
+  const bankSettings = useHuiStore((s) => s.bankSettings);
 
   const [filterGroup, setFilterGroup] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -51,6 +53,8 @@ export default function KeuHuiPage() {
 
   // active schedule tab in detail modal
   const [detailTab, setDetailTab] = useState('session'); // 'session' | 'schedule'
+  // QR thanh toán inline — id thành viên đang xem QR
+  const [qrMemberId, setQrMemberId] = useState(null);
 
   const createForm = useForm({
     resolver: zodResolver(createSchema),
@@ -701,6 +705,20 @@ export default function KeuHuiPage() {
               const paidSet = new Set(paidTxs.map((t) => t.memberId));
               const paidCount = paidSet.size;
               const needToPay = groupMembers.filter((m) => m.id !== detailSession.winnerId).length;
+
+              // Xác định người đã hốt trước kỳ này → đóng mức chết
+              const prevWinnerIds = new Set(
+                sessions
+                  .filter((s) => s.groupId === detailGroup.id && s.status === 'closed' && s.winnerId && s.periodNumber < detailSession.periodNumber)
+                  .map((s) => s.winnerId)
+              );
+              const getMemberContrib = (mid) =>
+                detailGroup.contributionAmountDead > 0 && prevWinnerIds.has(mid)
+                  ? detailGroup.contributionAmountDead
+                  : detailGroup.contributionAmount;
+
+              const hasBank = !!(bankSettings?.bankId && bankSettings?.accountNo);
+
               return (
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -716,66 +734,108 @@ export default function KeuHuiPage() {
                       const paid = paidSet.has(m.id);
                       const tx = paidTxs.find((t) => t.memberId === m.id);
                       const isWinner = m.id === detailSession.winnerId;
+                      const contrib = getMemberContrib(m.id);
+                      const showQr = qrMemberId === m.id;
+                      const qrUrl = hasBank && !isWinner ? buildVietQrUrl({
+                        bankId: bankSettings.bankId,
+                        accountNo: bankSettings.accountNo,
+                        accountName: bankSettings.accountName,
+                        amount: contrib,
+                        addInfo: `Gop ky ${detailSession.periodNumber} ${detailGroup.name}`,
+                      }) : null;
                       return (
-                        <div
-                          key={m.id}
-                          className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
-                            paid
-                              ? 'bg-green-50 border-green-200'
-                              : isWinner
-                              ? 'bg-blue-50 border-blue-200'
-                              : 'bg-gray-50 border-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {paid ? (
-                              <CheckCircle2 size={15} className="text-green-600 shrink-0" />
-                            ) : isWinner ? (
-                              <CheckCircle2 size={15} className="text-blue-500 shrink-0" />
-                            ) : (
-                              <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
-                            )}
-                            <span className={paid ? 'text-gray-800' : isWinner ? 'text-blue-700 font-medium' : 'text-gray-500'}>
-                              {m.name}
-                            </span>
+                        <div key={m.id} className="space-y-1.5">
+                          <div
+                            className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
+                              paid
+                                ? 'bg-green-50 border-green-200'
+                                : isWinner
+                                ? 'bg-blue-50 border-blue-200'
+                                : 'bg-gray-50 border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {paid ? (
+                                <CheckCircle2 size={15} className="text-green-600 shrink-0" />
+                              ) : isWinner ? (
+                                <CheckCircle2 size={15} className="text-blue-500 shrink-0" />
+                              ) : (
+                                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
+                              )}
+                              <span className={paid ? 'text-gray-800' : isWinner ? 'text-blue-700 font-medium' : 'text-gray-500'}>
+                                {m.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {paid ? (
+                                <>
+                                  <span className="text-xs text-green-700 font-medium">
+                                    {formatVnd(contrib)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => tx && deleteTransaction(tx.id)}
+                                    className="text-xs text-gray-400 hover:text-red-500 px-2 py-0.5 rounded hover:bg-red-50"
+                                  >
+                                    Hoàn
+                                  </button>
+                                </>
+                              ) : isWinner ? (
+                                <span className="text-xs text-blue-600 font-medium">Người hốt — miễn góp</span>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  {qrUrl && (
+                                    <button
+                                      type="button"
+                                      title="Mã QR thanh toán"
+                                      onClick={() => setQrMemberId(showQr ? null : m.id)}
+                                      className={`p-1.5 rounded-lg transition-colors ${showQr ? 'bg-amber-100 text-amber-600' : 'hover:bg-gray-200 text-gray-400'}`}
+                                    >
+                                      <QrCode size={14} />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      addTransaction({
+                                        groupId: detailGroup.id,
+                                        memberId: m.id,
+                                        kind: 'contribution',
+                                        amount: contrib,
+                                        periodNumber: detailSession.periodNumber,
+                                        date: detailSession.date,
+                                        status: 'completed',
+                                        notes: `Góp kỳ ${detailSession.periodNumber}`,
+                                      })
+                                    }
+                                    className="text-xs px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-medium"
+                                  >
+                                    Đánh dấu đã nộp
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {paid ? (
-                              <>
-                                <span className="text-xs text-green-700 font-medium">
-                                  {formatVnd(detailGroup.contributionAmount)}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => tx && deleteTransaction(tx.id)}
-                                  className="text-xs text-gray-400 hover:text-red-500 px-2 py-0.5 rounded hover:bg-red-50"
-                                >
-                                  Hoàn
-                                </button>
-                              </>
-                            ) : isWinner ? (
-                              <span className="text-xs text-blue-600 font-medium">Người hốt — miễn góp</span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  addTransaction({
-                                    groupId: detailGroup.id,
-                                    memberId: m.id,
-                                    kind: 'contribution',
-                                    amount: detailGroup.contributionAmount,
-                                    periodNumber: detailSession.periodNumber,
-                                    date: detailSession.date,
-                                    status: 'completed',
-                                    notes: `Góp kỳ ${detailSession.periodNumber}`,
-                                  })
-                                }
-                                className="text-xs px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-medium"
-                              >
-                                Đánh dấu đã nộp
-                              </button>
-                            )}
-                          </div>
+
+                          {/* QR thanh toán inline */}
+                          {showQr && qrUrl && (
+                            <div className="flex items-center gap-4 px-3 py-3 rounded-lg bg-white border border-amber-200 shadow-sm">
+                              <img
+                                src={qrUrl}
+                                alt={`QR ${m.name}`}
+                                className="w-28 h-28 rounded-lg border border-gray-200 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs text-gray-500 mb-0.5">Chuyển khoản cho</p>
+                                <p className="text-sm font-bold text-gray-900">{bankSettings.accountName || '—'}</p>
+                                <p className="text-xs text-gray-500 mt-1.5 mb-0.5">Số tiền</p>
+                                <p className="text-lg font-black text-amber-600">{formatVnd(contrib)}</p>
+                                <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+                                  Nội dung: Gop ky {detailSession.periodNumber} {detailGroup.name}
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
