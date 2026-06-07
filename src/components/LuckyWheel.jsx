@@ -567,7 +567,7 @@ export default function LuckyWheel({ members, onSelect }) {
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500 text-white ' +
                       'shadow-xl shadow-amber-400/45 hover:shadow-2xl hover:shadow-amber-500/55 ' +
-                      'hover:-translate-y-1 active:scale-95 active:translate-y-0'
+                      'active:scale-95'
                 }`}
             >
               {!spinning && !isCharging && n >= 2 && (

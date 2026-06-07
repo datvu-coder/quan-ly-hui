@@ -1145,15 +1145,6 @@ export default function KeuHuiPage() {
         onClose={() => setWheelOpen(false)}
         title="🎰 Vòng quay may mắn"
         wide
-        footer={
-          <button
-            type="button"
-            onClick={() => setWheelOpen(false)}
-            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm"
-          >
-            Đóng
-          </button>
-        }
       >
         <LuckyWheel
           members={wheelMembers}
