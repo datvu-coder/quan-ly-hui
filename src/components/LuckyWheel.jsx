@@ -146,11 +146,12 @@ export default function LuckyWheel({ members, onSelect }) {
   const [winnerIdx, setWinnerIdx]   = useState(null);
   const [ptrBounce, setPtrBounce]   = useState(false);
   const [isCharging, setIsCharging] = useState(false);
-  const rotRef        = useRef(0);
-  const rafRef        = useRef(null);
-  const wheelGRef     = useRef(null);
-  const audioRef      = useRef(null);
-  const lastSegRef    = useRef(-1);
+  const rotRef           = useRef(0);
+  const rafRef           = useRef(null);
+  const wheelGRef        = useRef(null);
+  const audioRef         = useRef(null);
+  const lastSegRef       = useRef(-1);
+  const lastWinnerIdxRef = useRef(-1); // tránh trúng cùng 1 người 2 lần liên tiếp
   const canvasRef     = useRef(null);
   const stopConfetti  = useRef(null);
   // Charge (hold-to-spin) refs
@@ -180,7 +181,15 @@ export default function LuckyWheel({ members, onSelect }) {
     cancelAnimationFrame(rafRef.current);
     setWinnerIdx(null); setPtrBounce(false); setSpinning(true);
 
-    const idx        = Math.floor(rand() * n);
+    // Loại trừ người vừa trúng ở lần quay trước (n-1 slot còn lại, phân phối đều)
+    const excluded = lastWinnerIdxRef.current;
+    let idx;
+    if (excluded >= 0 && n >= 2) {
+      const r = Math.floor(rand() * (n - 1));
+      idx = r >= excluded ? r + 1 : r;
+    } else {
+      idx = Math.floor(rand() * n);
+    }
     const landOffset = (rand() - 0.5) * seg * 0.6;
     const baseTarget = -(idx * seg + seg / 2 + landOffset);
     const diff       = ((baseTarget - rotRef.current) % 360 + 360) % 360 || 360;
@@ -210,6 +219,7 @@ export default function LuckyWheel({ members, onSelect }) {
         rafRef.current = requestAnimationFrame(animate);
       } else {
         rotRef.current = startRot + totalDelta;
+        lastWinnerIdxRef.current = idx;
         setSpinning(false); setWinnerIdx(idx);
         setPtrBounce(true); setTimeout(() => setPtrBounce(false), 850);
         stopConfetti.current = launchConfetti(canvasRef.current);
