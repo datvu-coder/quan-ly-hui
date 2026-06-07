@@ -250,13 +250,6 @@ tbody tr {
   @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-40;
 }
 
-/* Modal overlay: trên desktop không che sidebar và topbar */
-@media (min-width: 1024px) {
-  .modal-overlay {
-    left: var(--sidebar-w, 0px);
-    top: 3.5rem; /* h-14 = 56px = chiều cao DesktopHeader */
-  }
-}
 
 .modal-content {
   @apply fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;

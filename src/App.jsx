@@ -68,7 +68,7 @@ function Sidebar({ current, onNavigate, open, setOpen, onSeedDemo, onLogout }) {
   );
 
   return (
-    <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-[#0c1322] border-r border-white/5 transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-64'}`}>
+    <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-[#0c1322] border-r border-white/5 transition-all duration-300 z-[60] ${collapsed ? 'w-[68px]' : 'w-64'}`}>
       {/* Toggle + Logo */}
       <div className="flex items-center h-14 border-b border-white/5 relative shrink-0">
         <button type="button" onClick={() => setOpen(!open)} title={collapsed ? 'Mở rộng' : 'Thu gọn'}
@@ -281,7 +281,7 @@ function MoreSheet({ open, onClose, onNavigate, currentPage, onSeedDemo, onLogou
 // ── Desktop top header ──────────────────────────────────────────────────────
 function DesktopHeader({ title, onSettings }) {
   return (
-    <header className="hidden lg:flex h-14 bg-white border-b border-gray-200 items-center gap-3 px-5 shrink-0 shadow-sm">
+    <header className="hidden lg:flex h-14 bg-white border-b border-gray-200 items-center gap-3 px-5 shrink-0 shadow-sm relative z-[60]">
       <h1 className="flex-1 text-[15px] font-semibold text-gray-900 truncate">{title}</h1>
       <div className="flex items-center gap-1 shrink-0">
         <button type="button" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
@@ -300,11 +300,6 @@ function DesktopHeader({ title, onSettings }) {
 export default function App() {
   const [currentPage,  setCurrentPage]  = useState('dashboard');
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
-
-  // Sync sidebar width vào CSS variable để modal overlay không che sidebar
-  useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-w', sidebarOpen ? '256px' : '68px');
-  }, [sidebarOpen]);
   const [moreOpen,     setMoreOpen]     = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
