@@ -300,6 +300,11 @@ function DesktopHeader({ title, onSettings }) {
 export default function App() {
   const [currentPage,  setCurrentPage]  = useState('dashboard');
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
+
+  // Sync sidebar width vào CSS variable để modal overlay không che sidebar
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-w', sidebarOpen ? '256px' : '68px');
+  }, [sidebarOpen]);
   const [moreOpen,     setMoreOpen]     = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);

@@ -250,6 +250,13 @@ tbody tr {
   @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-40;
 }
 
+/* Modal overlay: trên desktop không che sidebar bên trái */
+@media (min-width: 1024px) {
+  .modal-overlay {
+    left: var(--sidebar-w, 0px);
+  }
+}
+
 .modal-content {
   @apply fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
   @apply bg-slate-800/40 backdrop-blur border border-slate-700/50 rounded-xl shadow-2xl shadow-slate-950/50;

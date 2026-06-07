@@ -4,10 +4,10 @@ import { X } from 'lucide-react';
 export function Modal({ open, onClose, title, children, footer, wide }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0"
+        className="absolute inset-0 bg-black/50"
         aria-label="Đóng"
         onClick={onClose}
       />
