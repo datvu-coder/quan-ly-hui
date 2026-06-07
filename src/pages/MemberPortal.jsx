@@ -404,6 +404,7 @@ export default function MemberPortal({ memberId, onLogout }) {
   const transactions    = useHuiStore((s) => s.transactions);
   const memberById      = useHuiStore((s) => s.memberById);      // calls get() → always fresh
   const membersForGroup = useHuiStore((s) => s.membersForGroup); // calls get() → always fresh
+  const bankSettings    = useHuiStore((s) => s.bankSettings);
 
   const member   = memberById(memberId);
   const [tab, setTab] = useState('groups');
@@ -679,24 +680,98 @@ export default function MemberPortal({ memberId, onLogout }) {
               .filter(({ lastClosedSession, myPaidLastClosed }) =>
                 lastClosedSession && !myPaidLastClosed && lastClosedSession.winnerId !== memberId
               )
-              .map(({ group: g, lastClosedSession, iWonPeriod }) => (
-                <div key={`closed-${g.id}`} className="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 border-b border-orange-100 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{g.name}</p>
-                      <p className="text-xs text-gray-400">
-                        Kỳ {lastClosedSession.periodNumber} · {formatDate(lastClosedSession.date)} · {g.type === 'live' ? 'Hụi sống' : 'Hụi chết'}
-                      </p>
+              .map(({ group: g, lastClosedSession, iWonPeriod }) => {
+                const prevWonIds = new Set(
+                  sessions
+                    .filter((s) => s.groupId === g.id && s.status === 'closed' && s.winnerId && s.periodNumber < lastClosedSession.periodNumber)
+                    .map((s) => s.winnerId)
+                );
+                const contrib = g.contributionAmountDead > 0 && prevWonIds.has(memberId)
+                  ? g.contributionAmountDead
+                  : g.contributionAmount;
+                const winnerName = lastClosedSession.winnerId ? memberById(lastClosedSession.winnerId)?.name ?? '—' : '—';
+                const qrUrl = buildVietQrUrl({
+                  bankId: bankSettings?.bankId,
+                  accountNo: bankSettings?.accountNo,
+                  accountName: bankSettings?.accountName,
+                  amount: contrib,
+                  addInfo: `Gop ky ${lastClosedSession.periodNumber} ${g.name}`,
+                });
+                return (
+                  <div key={`closed-${g.id}`} className="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 border-b border-orange-100 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{g.name}</p>
+                        <p className="text-xs text-gray-400">
+                          Kỳ {lastClosedSession.periodNumber} · {formatDate(lastClosedSession.date)} · {g.type === 'live' ? 'Hụi sống' : 'Hụi chết'}
+                        </p>
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-700">
+                        Chờ đóng tiền
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-700">
-                      Chờ đóng tiền
-                    </span>
+                    <div className="p-4 space-y-3">
+                      {/* Winner info */}
+                      <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                        <CheckCircle2 size={14} className="shrink-0 text-blue-500" />
+                        <span>Kỳ này <strong>{winnerName}</strong> hốt hụi</span>
+                      </div>
+
+                      {/* Amount */}
+                      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-orange-50 border border-orange-200">
+                        <span className="text-sm text-orange-700 font-medium">Số tiền cần đóng</span>
+                        <span className="text-lg font-black text-orange-700">{formatVnd(contrib)}</span>
+                      </div>
+
+                      {/* QR code */}
+                      {qrUrl ? (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+                          <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                            <QrCode size={14} className="text-amber-600" />
+                            <p className="text-sm font-semibold text-amber-800">Quét QR để chuyển khoản</p>
+                            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 font-semibold">VietQR</span>
+                          </div>
+                          <div className="px-4 pb-3 flex gap-4 items-center">
+                            <img
+                              src={qrUrl}
+                              alt="QR thanh toán"
+                              className="w-32 h-32 rounded-lg border border-amber-200 shrink-0 object-contain"
+                            />
+                            <div className="min-w-0 space-y-1.5">
+                              {bankSettings.bankId && (
+                                <div>
+                                  <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Ngân hàng</p>
+                                  <p className="text-sm font-semibold text-gray-900">{bankDisplayName(bankSettings.bankId)}</p>
+                                </div>
+                              )}
+                              {bankSettings.accountNo && (
+                                <div>
+                                  <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Số tài khoản</p>
+                                  <p className="text-sm font-bold text-gray-900 tracking-wider">{bankSettings.accountNo}</p>
+                                </div>
+                              )}
+                              {bankSettings.accountName && (
+                                <div>
+                                  <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wide">Chủ tài khoản</p>
+                                  <p className="text-sm text-gray-800">{bankSettings.accountName}</p>
+                                </div>
+                              )}
+                              <p className="text-[10px] text-amber-600 pt-1">Nội dung CK đã điền sẵn trong QR</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        bankSettings?.accountNo && (
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 space-y-1.5 text-sm">
+                            {bankSettings.accountName && <p className="font-semibold text-gray-800">{bankSettings.accountName}</p>}
+                            <p className="text-gray-600">STK: <span className="font-bold tracking-wider">{bankSettings.accountNo}</span></p>
+                          </div>
+                        )
+                      )}
+                    </div>
                   </div>
-                  <div className="p-4">
-                    <PaymentSection group={g} session={lastClosedSession} memberId={memberId} iWonPeriod={iWonPeriod} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
             {groupData
               .filter(({ openSession }) => !!openSession)
