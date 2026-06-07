@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle, Settings2, Eye } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import LuckyWheel from '../components/LuckyWheel.jsx';
@@ -311,9 +311,10 @@ export default function KeuHuiPage() {
                             setBidRate('0');
                             setDetailId(sess.id);
                           }}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
+                          className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600"
+                          title={sess.status === 'open' ? 'Quản lý' : 'Xem'}
                         >
-                          {sess.status === 'open' ? 'Quản lý' : 'Xem'}
+                          {sess.status === 'open' ? <Settings2 size={15} /> : <Eye size={15} />}
                         </button>
                         <button
                           type="button"
