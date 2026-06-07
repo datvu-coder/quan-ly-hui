@@ -206,6 +206,8 @@ export default function KeuHuiPage() {
     setDetailId(null);
   };
 
+  const sessionToDelete = useMemo(() => sessions.find((s) => s.id === deleteId), [sessions, deleteId]);
+
   // ---------- List ----------
   const filtered = useMemo(() => {
     const list = filterGroup ? sessions.filter((s) => s.groupId === filterGroup) : sessions;
@@ -312,15 +314,13 @@ export default function KeuHuiPage() {
                         >
                           {sess.status === 'open' ? 'Quản lý' : 'Xem'}
                         </button>
-                        {sess.status === 'open' && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(sess.id)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(sess.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1164,7 +1164,13 @@ export default function KeuHuiPage() {
             </button>
             <button
               type="button"
-              onClick={() => { deleteSession(deleteId); setDeleteId(null); }}
+              onClick={() => {
+                if (sessionToDelete?.status === 'closed' && sessionToDelete?.transactionId) {
+                  deleteTransaction(sessionToDelete.transactionId);
+                }
+                deleteSession(deleteId);
+                setDeleteId(null);
+              }}
               className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium"
             >
               Xóa
@@ -1172,7 +1178,14 @@ export default function KeuHuiPage() {
           </>
         }
       >
-        <p className="text-sm text-gray-600">Xóa phiên kêu hụi này. Giao dịch liên quan không bị xóa.</p>
+        {sessionToDelete?.status === 'closed' ? (
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>Xóa phiên đã chốt sẽ đồng thời <strong className="text-red-600">xóa giao dịch hốt hụi</strong> được tạo tự động khi chốt phiên.</p>
+            <p className="text-xs text-gray-400">Các giao dịch góp quỹ của thành viên không bị ảnh hưởng.</p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">Xóa phiên kêu hụi này. Giao dịch góp quỹ liên quan không bị xóa.</p>
+        )}
       </Modal>
     </div>
   );
