@@ -58,6 +58,21 @@ export function calcPeriodGross(group, sessions, memberIds, periodNumber) {
   return (liveCount - 1) * group.contributionAmount + deadCount * dead;
 }
 
+/**
+ * Tính gross ước tính cho bảng dự báo tất cả kỳ.
+ * Giả định mỗi kỳ có đúng 1 người hốt tuần tự → kỳ p có (p-1) người đã hốt trước.
+ * Dùng thay cho calcPeriodGross khi tính ước tính cho các kỳ chưa diễn ra.
+ */
+export function calcPeriodGrossEstimate(group, memberIds, period) {
+  const dead = group.contributionAmountDead || 0;
+  if (!dead) {
+    return (memberIds.length - 1) * group.contributionAmount;
+  }
+  const deadCount = Math.min(period - 1, memberIds.length - 1);
+  const liveCount = memberIds.length - deadCount;
+  return (liveCount - 1) * group.contributionAmount + deadCount * dead;
+}
+
 /** Tính tiền hốt trong phiên kêu hụi:
  *  - hụi chết: gross - commission
  *  - hụi sống: gross - commission - interest (gross × bidRate%)

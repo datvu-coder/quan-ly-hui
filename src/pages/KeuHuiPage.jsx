@@ -7,7 +7,7 @@ import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import LuckyWheel from '../components/LuckyWheel.jsx';
 import { formatDate, formatVnd, cycleLabel } from '../lib/format.js';
-import { currentPeriodNumber, calcSessionNet, calcPeriodGross } from '../lib/period.js';
+import { currentPeriodNumber, calcSessionNet, calcPeriodGross, calcPeriodGrossEstimate } from '../lib/period.js';
 
 const createSchema = z.object({
   groupId: z.string().min(1, 'Chọn dây hụi'),
@@ -621,7 +621,7 @@ export default function KeuHuiPage() {
 
               const rows = Array.from({ length: N }, (_, i) => {
                 const period = i + 1;
-                const gross = calcPeriodGross(detailGroup, sessions, memberIds, period);
+                const gross = calcPeriodGrossEstimate(detailGroup, memberIds, period);
                 const { commission, net } = calcSessionNet(detailGroup, 0, gross);
                 const closed = closedMap[period];
                 const isCurrent = period === detailSession.periodNumber;
