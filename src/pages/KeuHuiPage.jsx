@@ -967,10 +967,14 @@ export default function KeuHuiPage() {
                   <p className="text-xs font-medium text-blue-700 flex items-center gap-1">
                     <Zap size={13} /> Hụi chết — Chốt ngay người hốt kỳ này:
                   </p>
-                  {eligibleMembers.length >= 2 && (
+                  {(eligibleMembers.length >= 2 || sortedBids.length >= 2) && (
                     <button
                       type="button"
-                      onClick={() => openWheel(eligibleMembers)}
+                      onClick={() => openWheel(
+                        sortedBids.length >= 2
+                          ? sortedBids.map((b) => memberById(b.memberId)).filter(Boolean)
+                          : eligibleMembers
+                      )}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-semibold transition-colors"
                     >
                       <Shuffle size={13} /> Vòng quay may mắn
@@ -993,15 +997,20 @@ export default function KeuHuiPage() {
               </div>
             )}
 
-            {/* Live hui: tied-bid wheel */}
-            {detailGroup.type === 'live' && detailSession.status === 'open' && tiedBidders.length >= 2 && (
+            {/* Live hui: wheel khi có 2+ người đăng ký (bao gồm trường hợp tied) */}
+            {detailGroup.type === 'live' && detailSession.status === 'open' && sortedBids.length >= 2 && (
               <div className="rounded-lg bg-orange-50 border border-orange-200 p-4 space-y-2">
                 <p className="text-xs font-medium text-orange-700">
-                  {tiedBidders.length} thành viên cùng kêu lãi <strong>{sortedBids[0].bidRate}%</strong> — cần bốc thăm.
+                  {tiedBidders.length >= 2
+                    ? <>{tiedBidders.length} thành viên cùng kêu lãi <strong>{sortedBids[0].bidRate}%</strong> — cần bốc thăm.</>
+                    : <>{sortedBids.length} thành viên đã đăng ký kêu — dùng vòng quay để chọn ngẫu nhiên.</>
+                  }
                 </p>
                 <button
                   type="button"
-                  onClick={() => openWheel(tiedBidders.map((b) => memberById(b.memberId)).filter(Boolean))}
+                  onClick={() => openWheel(
+                    (tiedBidders.length >= 2 ? tiedBidders : sortedBids).map((b) => memberById(b.memberId)).filter(Boolean)
+                  )}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-400 hover:bg-orange-500 text-white font-semibold text-sm transition-colors"
                 >
                   <Shuffle size={15} /> Vòng quay may mắn
@@ -1060,17 +1069,22 @@ export default function KeuHuiPage() {
               );
             })()}
 
-            {/* Tie wheel shortcut */}
-            {tiedBidders.length >= 2 && (
+            {/* Wheel shortcut khi có 2+ đăng ký */}
+            {sortedBids.length >= 2 && (
               <div className="flex items-center justify-between rounded-lg bg-orange-50 border border-orange-200 px-3 py-2">
                 <span className="text-xs text-orange-700">
-                  {tiedBidders.length} người cùng lãi {sortedBids[0]?.bidRate}% — bốc thăm?
+                  {tiedBidders.length >= 2
+                    ? `${tiedBidders.length} người cùng lãi ${sortedBids[0]?.bidRate}% — bốc thăm?`
+                    : `${sortedBids.length} người đã đăng ký — dùng vòng quay?`
+                  }
                 </span>
                 <button
                   type="button"
                   onClick={() => {
                     setConfirmOpen(false);
-                    openWheel(tiedBidders.map((b) => memberById(b.memberId)).filter(Boolean));
+                    openWheel(
+                      (tiedBidders.length >= 2 ? tiedBidders : sortedBids).map((b) => memberById(b.memberId)).filter(Boolean)
+                    );
                   }}
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-orange-400 text-white text-xs font-semibold"
                 >
