@@ -430,6 +430,15 @@ export default function MemberPortal({ memberId, onLogout }) {
         )
       : null;
 
+    const lastClosedSession = closedSessions[closedSessions.length - 1] ?? null;
+    const myPaidLastClosed = lastClosedSession
+      ? transactions.some(
+          (t) => t.groupId === g.id && t.memberId === memberId
+               && t.periodNumber === lastClosedSession.periodNumber
+               && t.kind === 'contribution' && t.status === 'completed'
+        )
+      : true;
+
     const history = closedSessions.map((s) => ({
       period: s.periodNumber,
       winnerName: s.winnerId ? memberById(s.winnerId)?.name ?? '—' : '—',
@@ -447,7 +456,7 @@ export default function MemberPortal({ memberId, onLogout }) {
       ? calcPeriodGross(g, sessions, memberIds, openSession.periodNumber)
       : null;
 
-    return { group: g, openSession, iWonPeriod, myPaidThisPeriod, history, remaining, iAmEligible, openGross, memberIds };
+    return { group: g, openSession, lastClosedSession, myPaidLastClosed, iWonPeriod, myPaidThisPeriod, history, remaining, iAmEligible, openGross, memberIds };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [myGroups, sessions, transactions, memberId, members, memberships]);
 
@@ -656,12 +665,38 @@ export default function MemberPortal({ memberId, onLogout }) {
         {/* ── Kêu hụi tab ── */}
         {tab === 'keu-hui' && (
           <>
-            {groupData.filter(({ openSession }) => openSession).length === 0 && (
+            {groupData.filter(({ openSession, lastClosedSession, myPaidLastClosed }) =>
+              openSession || (lastClosedSession && !myPaidLastClosed && lastClosedSession.winnerId !== memberId)
+            ).length === 0 && (
               <div className="text-center py-16 space-y-2">
                 <Gavel size={32} className="text-gray-300 mx-auto" />
                 <p className="text-sm text-gray-400">Chưa có phiên kêu hụi nào đang mở.</p>
               </div>
             )}
+
+            {/* Closed sessions awaiting payment */}
+            {groupData
+              .filter(({ lastClosedSession, myPaidLastClosed }) =>
+                lastClosedSession && !myPaidLastClosed && lastClosedSession.winnerId !== memberId
+              )
+              .map(({ group: g, lastClosedSession, iWonPeriod }) => (
+                <div key={`closed-${g.id}`} className="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-orange-100 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{g.name}</p>
+                      <p className="text-xs text-gray-400">
+                        Kỳ {lastClosedSession.periodNumber} · {formatDate(lastClosedSession.date)} · {g.type === 'live' ? 'Hụi sống' : 'Hụi chết'}
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-700">
+                      Chờ đóng tiền
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <PaymentSection group={g} session={lastClosedSession} memberId={memberId} iWonPeriod={iWonPeriod} />
+                  </div>
+                </div>
+              ))}
 
             {groupData
               .filter(({ openSession }) => !!openSession)
