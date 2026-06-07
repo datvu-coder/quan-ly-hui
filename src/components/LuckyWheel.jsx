@@ -439,15 +439,22 @@ export default function LuckyWheel({ members, onSelect }) {
                 const startDeg = i * seg - 90;
                 const endDeg   = (i + 1) * seg - 90;
                 const midDeg   = (startDeg + endDeg) / 2;
-                const textR    = R * 0.6;
+                // Hướng kính: text từ trung tâm ra viền
+                // Vùng hiển thị từ hub (r≈0.3R) đến gần viền (r≈0.88R), midpoint ≈ 0.59R
+                const textR    = R * 0.59;
                 const tx       = CX + textR * Math.cos(toRad(midDeg));
                 const ty       = CY + textR * Math.sin(toRad(midDeg));
                 const isWinner = winner && m.id === winner.id;
                 const dimmed   = winner && !isWinner;
-                const maxLen   = n > 10 ? 5 : n > 7 ? 6 : 8;
+                // Chiều dài tối đa ước theo pixel: (R*0.88 - R*0.3) / fs ≈ 94/fs ký tự
+                const fs       = n > 10 ? 7.5 : n > 7 ? 9 : n > 5 ? 10.5 : 12.5;
+                const maxLen   = Math.floor((R * 0.58) / (fs * 0.62));
                 const label    = m.name.length > maxLen ? m.name.slice(0, maxLen - 1) + '…' : m.name;
-                const fs       = n > 10 ? 8 : n > 7 ? 10 : n > 5 ? 11.5 : 13.5;
-                const rot      = `rotate(${midDeg + 90},${tx},${ty})`;
+                // rotate(midDeg) = hướng kính; flip nửa trái để chữ không bị ngược
+                const needFlip = midDeg > 90 || midDeg < -90;
+                const rot      = needFlip
+                  ? `rotate(${midDeg + 180},${tx},${ty})`
+                  : `rotate(${midDeg},${tx},${ty})`;
                 const ci       = i % PALETTE.length;
 
                 return (
