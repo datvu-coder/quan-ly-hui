@@ -521,7 +521,7 @@ export default function LuckyWheel({ members, onSelect }) {
               <button type="button" onClick={() => onSelect(winner.id)}
                 className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500
                   text-white font-bold text-sm shadow-lg shadow-amber-300/50
-                  hover:shadow-xl hover:shadow-amber-400/60 hover:-translate-y-0.5
+                  hover:shadow-xl hover:shadow-amber-400/60
                   transition-all active:scale-95">
                 Xác nhận ✓
               </button>
@@ -533,23 +533,21 @@ export default function LuckyWheel({ members, onSelect }) {
         {!winner && (
           <div className="flex flex-col items-center gap-3 w-full max-w-[280px]">
 
-            {/* Power bar — hiện khi đang giữ nút */}
-            {isCharging && (
-              <div className="w-full space-y-1.5 px-1">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-gray-500">Lực quay</span>
-                  <span ref={powerLabelRef} className="text-green-600">🌀 Nhẹ</span>
-                </div>
-                <div className="h-5 bg-gray-100 rounded-full overflow-hidden border border-gray-200 shadow-inner">
-                  <div
-                    ref={powerBarRef}
-                    className="h-full rounded-full transition-colors duration-300"
-                    style={{ width: '0%', background: '#22c55e' }}
-                  />
-                </div>
-                <p className="text-[10px] text-center text-gray-400">Thả tay để quay</p>
+            {/* Power bar — luôn chiếm chỗ để nút không bị nhảy layout */}
+            <div className="w-full space-y-1.5 px-1" style={{ visibility: isCharging ? 'visible' : 'hidden' }}>
+              <div className="flex justify-between items-center text-xs font-bold">
+                <span className="text-gray-500">Lực quay</span>
+                <span ref={powerLabelRef} className="text-green-600">🌀 Nhẹ</span>
               </div>
-            )}
+              <div className="h-5 bg-gray-100 rounded-full overflow-hidden border border-gray-200 shadow-inner">
+                <div
+                  ref={powerBarRef}
+                  className="h-full rounded-full transition-colors duration-300"
+                  style={{ width: '0%', background: '#22c55e' }}
+                />
+              </div>
+              <p className="text-[10px] text-center text-gray-400">Thả tay để quay</p>
+            </div>
 
             <button
               type="button"
