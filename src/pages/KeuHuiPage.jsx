@@ -638,10 +638,10 @@ export default function KeuHuiPage() {
                     <table className="w-full text-xs">
                       <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
                         <tr className="text-gray-500">
-                          <th className="text-left px-4 py-2 font-medium">Kỳ</th>
-                          <th className="text-right px-4 py-2 font-medium">Quỹ kỳ</th>
-                          <th className="text-right px-4 py-2 font-medium">Hoa hồng</th>
-                          <th className="text-right px-4 py-2 font-medium">Tiền nhận</th>
+                          <th className="text-left px-4 py-2 font-medium whitespace-nowrap">Kỳ</th>
+                          <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Quỹ kỳ</th>
+                          <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Hoa hồng</th>
+                          <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Tiền nhận</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -652,16 +652,16 @@ export default function KeuHuiPage() {
                               isCurrent ? 'bg-amber-50' : closed ? 'bg-green-50/60' : ''
                             }`}
                           >
-                            <td className={`px-4 py-2 font-medium ${
+                            <td className={`px-4 py-2 font-medium whitespace-nowrap ${
                               isCurrent ? 'text-amber-700' : closed ? 'text-green-700' : 'text-gray-700'
                             }`}>
                               Kỳ {period}
                               {isCurrent && <span className="ml-1.5 text-[10px] text-amber-500 font-normal">← đang xem</span>}
                               {closed && !isCurrent && <span className="ml-1 text-green-500">✓</span>}
                             </td>
-                            <td className="px-4 py-2 text-right text-gray-500">{formatVnd(gross)}</td>
-                            <td className="px-4 py-2 text-right text-red-400">−{formatVnd(commission)}</td>
-                            <td className={`px-4 py-2 text-right font-semibold ${
+                            <td className="px-4 py-2 text-right text-gray-500 whitespace-nowrap">{formatVnd(gross)}</td>
+                            <td className="px-4 py-2 text-right text-red-400 whitespace-nowrap">−{formatVnd(commission)}</td>
+                            <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap ${
                               closed ? 'text-green-700' : 'text-emerald-600'
                             }`}>
                               {closed
