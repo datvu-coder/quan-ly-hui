@@ -342,6 +342,7 @@ export default function KeuHuiPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Tạo phiên kêu hụi"
+        wide
         footer={
           <>
             <button
@@ -1028,6 +1029,7 @@ export default function KeuHuiPage() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title="Xác nhận chốt phiên"
+        wide
         footer={
           <>
             <button

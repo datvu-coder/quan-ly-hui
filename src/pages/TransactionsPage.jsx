@@ -317,6 +317,7 @@ export default function TransactionsPage() {
         open={!!rejectId}
         onClose={() => setRejectId(null)}
         title="Từ chối lệnh chuyển khoản"
+        wide
         footer={
           <>
             <button type="button" onClick={() => setRejectId(null)}
