@@ -395,7 +395,7 @@ export const useHuiStore = create(
         const t = bundle?.transactions ?? [];
         const sess = bundle?.sessions ?? [];
         const pr = bundle?.paymentRequests ?? [];
-        set({
+        const update = {
           groups: Array.isArray(g) ? g : [],
           members: Array.isArray(m) ? m : [],
           memberships: Array.isArray(ms) ? ms : [],
@@ -403,12 +403,16 @@ export const useHuiStore = create(
           sessions: Array.isArray(sess) ? sess : [],
           paymentRequests: Array.isArray(pr) ? pr : [],
           initialized: true,
-        });
+        };
+        if (bundle?.bankSettings && typeof bundle.bankSettings === 'object') {
+          update.bankSettings = { bankId: '', accountNo: '', accountName: '', qrImageDataUrl: '', ...bundle.bankSettings };
+        }
+        set(update);
       },
 
       exportBundle: () => {
-        const { groups, members, memberships, transactions, sessions, paymentRequests } = get();
-        return { groups, members, memberships, transactions, sessions, paymentRequests, exportedAt: new Date().toISOString() };
+        const { groups, members, memberships, transactions, sessions, paymentRequests, bankSettings } = get();
+        return { groups, members, memberships, transactions, sessions, paymentRequests, bankSettings, exportedAt: new Date().toISOString() };
       },
 
       resetAll: () =>
