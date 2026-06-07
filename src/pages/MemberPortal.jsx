@@ -471,72 +471,77 @@ export default function MemberPortal({ memberId, onLogout }) {
   ];
 
   return (
-    <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="min-h-screen bg-gray-50">
 
-      {/* Header */}
-      <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <LogoIcon size={36} className="shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Xin chào</p>
-            <p className="font-bold text-white text-sm truncate">{member.name}</p>
+      {/* Header + Summary + Tabs — sticky khi cuộn */}
+      <div className="sticky top-0 z-10">
+
+        {/* Header */}
+        <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <LogoIcon size={36} className="shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Xin chào</p>
+              <p className="font-bold text-white text-sm truncate">{member.name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusCls[member.status] ?? statusCls.active}`}>
+              {statusLabel[member.status] ?? member.status}
+            </span>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+            >
+              <LogOut size={13} /> <span className="hidden sm:inline">Đăng xuất</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Summary */}
+        <div className="bg-slate-800 px-5 py-4 grid grid-cols-3 gap-2 text-white text-center">
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Dây tham gia</p>
+            <p className="text-2xl font-bold text-amber-400">{myGroups.length}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Đã góp</p>
+            <p className="text-lg font-bold text-orange-400 leading-tight">{formatVndCompact(totalContrib)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Đã hốt</p>
+            <p className="text-lg font-bold text-emerald-400 leading-tight">{formatVndCompact(totalReceived)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusCls[member.status] ?? statusCls.active}`}>
-            {statusLabel[member.status] ?? member.status}
-          </span>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
-          >
-            <LogOut size={13} /> <span className="hidden sm:inline">Đăng xuất</span>
-          </button>
-        </div>
-      </header>
 
-      {/* Summary */}
-      <div className="bg-slate-800 px-5 py-4 grid grid-cols-3 gap-2 text-white text-center">
-        <div>
-          <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Dây tham gia</p>
-          <p className="text-2xl font-bold text-amber-400">{myGroups.length}</p>
+        {/* Tabs */}
+        <div className="bg-white border-b border-gray-200 flex px-2 overflow-x-auto">
+          {tabs.map(({ key, label, badge }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                tab === key
+                  ? 'border-amber-400 text-amber-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+              {badge != null && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-        <div>
-          <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Đã góp</p>
-          <p className="text-lg font-bold text-orange-400 leading-tight">{formatVndCompact(totalContrib)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wide">Đã hốt</p>
-          <p className="text-lg font-bold text-emerald-400 leading-tight">{formatVndCompact(totalReceived)}</p>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 flex px-2 overflow-x-auto">
-        {tabs.map(({ key, label, badge }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === key
-                ? 'border-amber-400 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {label}
-            {badge != null && (
-              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                {badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      </div>{/* end sticky */}
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+      <main className="p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
 
         {/* ── Dây hụi tab ── */}
         {tab === 'groups' && (
