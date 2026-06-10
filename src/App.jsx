@@ -349,7 +349,9 @@ export default function App() {
       if (cancelled) return;
       if (serverData && serverData.groups) {
         // Server has data → import (overrides local IDB cache)
+        importingRef.current = true;
         useHuiStore.getState().importBundle(serverData);
+        importingRef.current = false;
       } else if (serverData === null) {
         // Server reachable but empty → push local data to initialise server
         const local = useHuiStore.getState().exportBundle();
@@ -380,7 +382,8 @@ export default function App() {
       pendingSaveRef.current = true;
       setSyncStatus('saving');
       saveTimer = setTimeout(async () => {
-        const bundle = useHuiStore.getState().exportBundle();
+        // Gắn _savedAt để thiết bị khác luôn phát hiện bundle mới
+        const bundle = { ...useHuiStore.getState().exportBundle(), _savedAt: Date.now() };
         const ok = await pushToServer(bundle);
         pendingSaveRef.current = false;
         if (ok) markSynced(); else setSyncStatus('offline');
@@ -389,23 +392,31 @@ export default function App() {
     return () => { unsub(); clearTimeout(saveTimer); };
   }, [markSynced]);
 
-  // ── Polling: pull server data mỗi 5s để đồng bộ mọi thiết bị ────────
+  // ── Polling: pull server data mỗi 2s để đồng bộ mọi thiết bị ─────────
   useEffect(() => {
     if (!hydrated) return;
 
-    // Fingerprint nhẹ: chỉ hash các trường thay đổi thường xuyên
+    // Fingerprint toàn diện: bao gồm nội dung thực của từng record
     function fingerprint(bundle) {
       if (!bundle) return '';
-      const bs = bundle.bankSettings;
-      const pwCount = Object.keys(bundle.memberPasswords ?? {}).length;
+      const bs = bundle.bankSettings ?? {};
+      const pw = bundle.memberPasswords ?? {};
       return [
-        ...(bundle.sessions ?? []).map((s) => `s${s.id}:${s.status}:${s.bids?.length ?? 0}:${s.winnerId ?? ''}`),
-        ...(bundle.transactions ?? []).map((t) => `t${t.id}:${t.status}`),
-        ...(bundle.paymentRequests ?? []).map((r) => `r${r.id}:${r.status}`),
-        ...(bundle.members ?? []).map((m) => `m${m.id}`),
-        ...(bundle.groups ?? []).map((g) => `g${g.id}`),
-        `bank:${bs?.bankId ?? ''}:${bs?.accountNo ?? ''}:${bs?.accountName ?? ''}`,
-        `pw:${pwCount}:${bundle.adminPasswordHash ?? ''}`,
+        ...(bundle.groups ?? []).map((g) =>
+          `g:${g.id}:${g.name ?? ''}:${g.contributionAmount ?? 0}:${g.contributionAmountDead ?? 0}:${g.ownerCommissionAmount ?? 0}:${g.type ?? ''}`),
+        ...(bundle.members ?? []).map((m) =>
+          `m:${m.id}:${m.name ?? ''}:${m.phone ?? ''}:${m.status ?? ''}`),
+        ...(bundle.memberships ?? []).map((ms) =>
+          `ms:${ms.memberId}:${ms.groupId}`),
+        ...(bundle.sessions ?? []).map((s) =>
+          `s:${s.id}:${s.status}:${s.periodNumber ?? 0}:${s.bids?.length ?? 0}:${s.winnerId ?? ''}:${s.winnerBidRate ?? 0}`),
+        ...(bundle.transactions ?? []).map((t) =>
+          `t:${t.id}:${t.amount ?? 0}:${t.status}:${t.kind ?? ''}`),
+        ...(bundle.paymentRequests ?? []).map((r) =>
+          `r:${r.id}:${r.status}`),
+        `bank:${bs.bankId ?? ''}:${bs.accountNo ?? ''}:${bs.accountName ?? ''}`,
+        `pw:${Object.keys(pw).length}:${bundle.adminPasswordHash ?? ''}`,
+        `_savedAt:${bundle._savedAt ?? 0}`,
       ].sort().join('|');
     }
 
