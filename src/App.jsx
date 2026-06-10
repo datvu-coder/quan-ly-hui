@@ -302,6 +302,7 @@ export default function App() {
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
   const [moreOpen,     setMoreOpen]     = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [localBank, setLocalBank] = useState(null); // null = not yet opened
   const [resetConfirm, setResetConfirm] = useState(false);
   const fileRef = useRef(null);
   const qrRef   = useRef(null);
@@ -395,12 +396,14 @@ export default function App() {
     // Fingerprint nhẹ: chỉ hash các trường thay đổi thường xuyên
     function fingerprint(bundle) {
       if (!bundle) return '';
+      const bs = bundle.bankSettings;
       return [
         ...(bundle.sessions ?? []).map((s) => `s${s.id}:${s.status}:${s.bids?.length ?? 0}:${s.winnerId ?? ''}`),
         ...(bundle.transactions ?? []).map((t) => `t${t.id}:${t.status}`),
         ...(bundle.paymentRequests ?? []).map((r) => `r${r.id}:${r.status}`),
         ...(bundle.members ?? []).map((m) => `m${m.id}`),
         ...(bundle.groups ?? []).map((g) => `g${g.id}`),
+        `bank:${bs?.bankId ?? ''}:${bs?.accountNo ?? ''}:${bs?.accountName ?? ''}`,
       ].sort().join('|');
     }
 
@@ -443,11 +446,21 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const openSettings = () => {
+    setLocalBank({ ...bankSettings });
+    setSettingsOpen(true);
+  };
+
+  const saveBankSettings = () => {
+    if (!localBank) return;
+    setBankSettings(localBank);
+  };
+
   const onPickQr = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setBankSettings({ qrImageDataUrl: ev.target.result });
+    reader.onload = (ev) => setLocalBank((prev) => ({ ...prev, qrImageDataUrl: ev.target.result }));
     reader.readAsDataURL(file);
     e.target.value = '';
   };
@@ -482,7 +495,7 @@ export default function App() {
   return (
     <>
       {/* ── Mobile layout ─────────────────────────────────────────────── */}
-      <MobileHeader title={pageTitle} onSettings={() => setSettingsOpen(true)} />
+      <MobileHeader title={pageTitle} onSettings={openSettings} />
 
       {/* ── Desktop layout ────────────────────────────────────────────── */}
       <div className="min-h-screen bg-gray-50 flex">
@@ -497,7 +510,7 @@ export default function App() {
 
         {/* Main content column */}
         <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-hidden">
-          <DesktopHeader title={pageTitle} onSettings={() => setSettingsOpen(true)} />
+          <DesktopHeader title={pageTitle} onSettings={openSettings} />
 
           {/* Empty state */}
           {empty && (
@@ -532,7 +545,7 @@ export default function App() {
         currentPage={currentPage}
         onSeedDemo={seedDemo}
         onLogout={doLogout}
-        onSettings={() => setSettingsOpen(true)}
+        onSettings={openSettings}
       />
 
       {/* ── Settings modal ─────────────────────────────────────────────── */}
@@ -546,6 +559,7 @@ export default function App() {
         <div className="space-y-6 text-sm text-gray-700">
 
           {/* ── QR / Ngân hàng ── */}
+          {localBank && (
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-900">QR &amp; Thông tin thanh toán</h3>
             <p className="text-xs text-gray-500">Hiển thị cho thành viên khi cần chuyển khoản góp hụi.</p>
@@ -554,8 +568,8 @@ export default function App() {
                 <span className="text-xs text-gray-600">Ngân hàng</span>
                 <select
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm bg-white"
-                  value={bankSettings.bankId}
-                  onChange={(e) => setBankSettings({ bankId: e.target.value })}
+                  value={localBank.bankId}
+                  onChange={(e) => setLocalBank((p) => ({ ...p, bankId: e.target.value }))}
                 >
                   <option value="">— Chọn ngân hàng —</option>
                   {BANKS.map((b) => (
@@ -568,8 +582,8 @@ export default function App() {
                 <input
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                   placeholder="VD: 1234567890"
-                  value={bankSettings.accountNo}
-                  onChange={(e) => setBankSettings({ accountNo: e.target.value })}
+                  value={localBank.accountNo}
+                  onChange={(e) => setLocalBank((p) => ({ ...p, accountNo: e.target.value }))}
                 />
               </label>
               <label className="block space-y-1 sm:col-span-2">
@@ -577,8 +591,8 @@ export default function App() {
                 <input
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                   placeholder="VD: NGUYEN VAN A"
-                  value={bankSettings.accountName}
-                  onChange={(e) => setBankSettings({ accountName: e.target.value })}
+                  value={localBank.accountName}
+                  onChange={(e) => setLocalBank((p) => ({ ...p, accountName: e.target.value }))}
                 />
               </label>
             </div>
@@ -588,10 +602,10 @@ export default function App() {
                 <div className="flex gap-2">
                   <button type="button" onClick={() => qrRef.current?.click()}
                     className="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">
-                    {bankSettings.qrImageDataUrl ? 'Thay ảnh QR' : 'Tải ảnh QR lên'}
+                    {localBank.qrImageDataUrl ? 'Thay ảnh QR' : 'Tải ảnh QR lên'}
                   </button>
-                  {bankSettings.qrImageDataUrl && (
-                    <button type="button" onClick={() => setBankSettings({ qrImageDataUrl: '' })}
+                  {localBank.qrImageDataUrl && (
+                    <button type="button" onClick={() => setLocalBank((p) => ({ ...p, qrImageDataUrl: '' }))}
                       className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-500 text-sm hover:bg-red-100">
                       Xóa
                     </button>
@@ -600,18 +614,28 @@ export default function App() {
                 </div>
                 <p className="text-xs text-gray-400">PNG/JPG. Ảnh QR từ app ngân hàng của bạn.</p>
               </div>
-              {bankSettings.qrImageDataUrl && (
-                <img src={bankSettings.qrImageDataUrl} alt="QR" className="w-24 h-24 object-contain rounded-lg border border-gray-200 shrink-0" />
+              {localBank.qrImageDataUrl && (
+                <img src={localBank.qrImageDataUrl} alt="QR" className="w-24 h-24 object-contain rounded-lg border border-gray-200 shrink-0" />
               )}
             </div>
+
+            {/* Nút lưu */}
+            <button
+              type="button"
+              onClick={saveBankSettings}
+              className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold text-sm transition-colors"
+            >
+              Lưu thông tin thanh toán
+            </button>
           </div>
+          )}
 
           {/* ── QR Preview ── */}
-          {(() => {
+          {localBank && (() => {
             const previewUrl = buildVietQrUrl({
-              bankId:      bankSettings.bankId,
-              accountNo:   bankSettings.accountNo,
-              accountName: bankSettings.accountName,
+              bankId:      localBank.bankId,
+              accountNo:   localBank.accountNo,
+              accountName: localBank.accountName,
               amount:      100000,
               addInfo:     'Gop hui ky 1',
             });
