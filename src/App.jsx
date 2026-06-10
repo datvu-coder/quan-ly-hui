@@ -397,6 +397,7 @@ export default function App() {
     function fingerprint(bundle) {
       if (!bundle) return '';
       const bs = bundle.bankSettings;
+      const pwCount = Object.keys(bundle.memberPasswords ?? {}).length;
       return [
         ...(bundle.sessions ?? []).map((s) => `s${s.id}:${s.status}:${s.bids?.length ?? 0}:${s.winnerId ?? ''}`),
         ...(bundle.transactions ?? []).map((t) => `t${t.id}:${t.status}`),
@@ -404,6 +405,7 @@ export default function App() {
         ...(bundle.members ?? []).map((m) => `m${m.id}`),
         ...(bundle.groups ?? []).map((g) => `g${g.id}`),
         `bank:${bs?.bankId ?? ''}:${bs?.accountNo ?? ''}:${bs?.accountName ?? ''}`,
+        `pw:${pwCount}:${bundle.adminPasswordHash ?? ''}`,
       ].sort().join('|');
     }
 

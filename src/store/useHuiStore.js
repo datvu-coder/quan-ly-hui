@@ -407,12 +407,20 @@ export const useHuiStore = create(
         if (bundle?.bankSettings && typeof bundle.bankSettings === 'object') {
           update.bankSettings = { bankId: '', accountNo: '', accountName: '', qrImageDataUrl: '', ...bundle.bankSettings };
         }
+        if (bundle?.adminPasswordHash !== undefined) {
+          update.adminPasswordHash = bundle.adminPasswordHash;
+        }
+        if (bundle?.memberPasswords && typeof bundle.memberPasswords === 'object') {
+          // Merge: giữ lại mật khẩu local cho các thành viên không có trong bundle
+          const current = get().memberPasswords ?? {};
+          update.memberPasswords = { ...current, ...bundle.memberPasswords };
+        }
         set(update);
       },
 
       exportBundle: () => {
-        const { groups, members, memberships, transactions, sessions, paymentRequests, bankSettings } = get();
-        return { groups, members, memberships, transactions, sessions, paymentRequests, bankSettings, exportedAt: new Date().toISOString() };
+        const { groups, members, memberships, transactions, sessions, paymentRequests, bankSettings, adminPasswordHash, memberPasswords } = get();
+        return { groups, members, memberships, transactions, sessions, paymentRequests, bankSettings, adminPasswordHash, memberPasswords, exportedAt: new Date().toISOString() };
       },
 
       resetAll: () =>
