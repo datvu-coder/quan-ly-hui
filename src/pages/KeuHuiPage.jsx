@@ -6,7 +6,7 @@ import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shu
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import LuckyWheel from '../components/LuckyWheel.jsx';
-import { formatDate, formatVnd, numberToWords } from '../lib/format.js';
+import { formatDate, formatVnd, numberToWords, cycleLabel } from '../lib/format.js';
 import { currentPeriodNumber, calcSessionNet, calcPeriodGross, calcPeriodGrossEstimate } from '../lib/period.js';
 import { buildVietQrUrl } from '../lib/banks.js';
 
