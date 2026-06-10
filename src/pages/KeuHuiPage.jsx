@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle, Settings2, Eye, QrCode } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Users, AlertCircle, Zap, CalendarClock, Shuffle, Settings2, Eye, QrCode, CalendarDays, Crown, Tag, UserX, UserCheck, Sigma, Scissors, Banknote, ChevronRight } from 'lucide-react';
 import { useHuiStore } from '../store/useHuiStore.js';
 import { Modal } from '../components/Modal.jsx';
 import LuckyWheel from '../components/LuckyWheel.jsx';
@@ -1281,11 +1281,29 @@ export default function KeuHuiPage() {
 }
 
 // ── Giao hụi receipt modal ─────────────────────────────────────────────────
-function fmt(n) {
+function fmtK(n) {
   if (!n) return '0';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}M`;
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tỷ`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}M`;
   if (n >= 1_000) return `${(n / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 0 })}K`;
   return n.toLocaleString('vi-VN');
+}
+
+function CalcRow({ icon: Icon, iconCls, label, value, subValue, highlight, separator }) {
+  return (
+    <div className={`${separator ? 'pt-3 mt-1 border-t border-gray-100' : ''}`}>
+      <div className={`flex items-center gap-3 py-2 ${highlight ? 'font-semibold' : ''}`}>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${iconCls}`}>
+          <Icon size={14} />
+        </div>
+        <span className={`flex-1 text-sm ${highlight ? 'text-gray-900' : 'text-gray-600'}`}>{label}</span>
+        <div className="text-right">
+          <span className={`text-sm font-semibold ${highlight ? 'text-gray-900' : 'text-gray-700'}`}>{value}</span>
+          {subValue && <p className="text-xs text-gray-400 mt-0.5">{subValue}</p>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function GiaoHuiModal({ sessionId, onClose, sessions, groupById, memberById, membersForGroup }) {
@@ -1300,7 +1318,6 @@ function GiaoHuiModal({ sessionId, onClose, sessions, groupById, memberById, mem
   const bidRate      = session.winnerBidRate ?? 0;
   const isLive       = group.type === 'live';
 
-  // Phân loại thành viên tại thời điểm kỳ này
   const prevWonIds = new Set(
     sessions
       .filter((s) => s.groupId === group.id && s.status === 'closed' && s.winnerId && s.periodNumber < session.periodNumber)
@@ -1309,114 +1326,111 @@ function GiaoHuiModal({ sessionId, onClose, sessions, groupById, memberById, mem
   const deadMembers  = allMembers.filter((m) => m.id !== session.winnerId && prevWonIds.has(m.id));
   const aliveMembers = allMembers.filter((m) => m.id !== session.winnerId && !prevWonIds.has(m.id));
 
-  // Tính toán
-  const bidPerPerson   = isLive ? Math.round(group.contributionAmount * bidRate / 100) : 0;
-  const aliveEach      = group.contributionAmount - bidPerPerson;
-  const aliveGross     = aliveMembers.length * aliveEach;
-  const deadEach       = group.contributionAmountDead > 0 ? group.contributionAmountDead : group.contributionAmount;
-  const deadGross      = deadMembers.length * deadEach;
-  const totalGross     = aliveGross + deadGross;
-  const commission     = group.ownerCommissionAmount ?? 0;
-  const net            = totalGross - commission;
-
-  const handlePrint = () => window.print();
-
-  const handleCopy = () => {
-    const lines = [
-      `GIAO HỤI`,
-      `${group.name} kỳ ${session.periodNumber} (${formatDate(session.date)})`,
-      `Khui ngày: ${formatDate(session.date)} - ${memberCount} phần`,
-      `Người hốt: ${winnerName}`,
-      ``,
-      isLive && bidPerPerson > 0 ? `Giá kêu: ${bidPerPerson.toLocaleString('vi-VN')}đ` : null,
-      deadMembers.length > 0
-        ? `Chết: ${deadMembers.length}ph × ${fmt(deadEach)} = ${fmt(deadGross)}`
-        : `Chết: 0`,
-      `Sống: ${aliveMembers.length}ph × ${fmt(aliveEach)} = ${fmt(aliveGross)}`,
-      `Tổng cộng: ${fmt(totalGross)}`,
-      commission > 0 ? `Các khoản trừ:\n  - Thảo: ${fmt(commission)}` : null,
-      ``,
-      `Số tiền được hốt: ${net.toLocaleString('vi-VN')}đ`,
-      `(${numberToWords(net)})`,
-    ].filter(Boolean).join('\n');
-    navigator.clipboard.writeText(lines);
-  };
+  const bidPerPerson = isLive ? Math.round(group.contributionAmount * bidRate / 100) : 0;
+  const aliveEach    = group.contributionAmount - bidPerPerson;
+  const aliveGross   = aliveMembers.length * aliveEach;
+  const deadEach     = group.contributionAmountDead > 0 ? group.contributionAmountDead : group.contributionAmount;
+  const deadGross    = deadMembers.length * deadEach;
+  const totalGross   = aliveGross + deadGross;
+  const commission   = group.ownerCommissionAmount ?? 0;
+  const net          = totalGross - commission;
 
   return (
-    <Modal open={!!sessionId} onClose={onClose} title="Giao hụi">
-      <div className="space-y-4">
-        {/* Header xanh lá như mẫu */}
-        <div className="rounded-xl bg-teal-50 border border-teal-200 p-4 space-y-2">
-          <p className="text-base font-bold text-red-600">
-            {group.name} kỳ {session.periodNumber} ({formatDate(session.date)})
-          </p>
-          <p className="text-sm text-indigo-600 font-medium">
-            📅 Khui ngày: {formatDate(session.date)} — {memberCount} phần
-          </p>
-          <p className="text-sm text-gray-700">
-            🧑 Người hốt: <strong>{winnerName}</strong>
-          </p>
-        </div>
+    <Modal open={!!sessionId} onClose={onClose} title="Phiếu giao hụi">
+      <div className="space-y-4 -mt-1">
 
-        {/* Bảng tính */}
-        <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-2 text-sm">
-          {isLive && bidPerPerson > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🧾</span>
-              <span className="text-gray-700">Giá kêu: <strong>{bidPerPerson.toLocaleString('vi-VN')}đ</strong></span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⬆️</span>
-            {deadMembers.length > 0 ? (
-              <span className="text-gray-700">
-                Chết: <strong>{deadMembers.length}ph</strong> × {fmt(deadEach)} = <strong>{fmt(deadGross)}</strong>
-              </span>
-            ) : (
-              <span className="text-gray-700">Chết: <strong>0</strong></span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⬇️</span>
-            <span className="text-gray-700">
-              Sống: <strong>{aliveMembers.length}ph</strong> × {fmt(aliveEach)} = <strong>{fmt(aliveGross)}</strong>
-            </span>
-          </div>
-          <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
-            <span className="text-lg">📦</span>
-            <span className="text-gray-700">Tổng cộng: <strong>{fmt(totalGross)}</strong></span>
-          </div>
-          {commission > 0 && (
-            <div className="flex items-start gap-2">
-              <span className="text-lg">💸</span>
+        {/* ── Header ── */}
+        <div className="rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-500 px-5 pt-5 pb-6">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-gray-700">Các khoản trừ:</span>
-                <div className="ml-4 text-gray-600">— Thảo: {fmt(commission)}</div>
+                <p className="text-emerald-100 text-xs font-medium uppercase tracking-widest mb-1">Phiếu giao hụi</p>
+                <h2 className="text-white text-lg font-bold leading-tight">{group.name}</h2>
               </div>
+              <span className="shrink-0 bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                Kỳ {session.periodNumber}
+              </span>
             </div>
+          </div>
+
+          {/* Info strip */}
+          <div className="bg-white border border-gray-100 px-5 py-3 flex flex-wrap gap-x-6 gap-y-2">
+            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+              <CalendarDays size={14} className="text-teal-500 shrink-0" />
+              <span>{formatDate(session.date)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+              <Users size={14} className="text-teal-500 shrink-0" />
+              <span>{memberCount} phần</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm text-gray-700 font-medium">
+              <Crown size={14} className="text-amber-500 shrink-0" />
+              <span>{winnerName}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Calculation card ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-1 divide-y divide-gray-50">
+
+          {isLive && bidPerPerson > 0 && (
+            <CalcRow
+              icon={Tag}
+              iconCls="bg-violet-100 text-violet-600"
+              label="Giá kêu"
+              value={`${bidPerPerson.toLocaleString('vi-VN')}đ / phần`}
+            />
+          )}
+
+          <CalcRow
+            icon={UserX}
+            iconCls="bg-rose-100 text-rose-500"
+            label={`Đã hốt (chết) — ${deadMembers.length} người`}
+            value={deadMembers.length > 0 ? `${deadMembers.length} × ${fmtK(deadEach)} = ${fmtK(deadGross)}` : '0'}
+          />
+
+          <CalcRow
+            icon={UserCheck}
+            iconCls="bg-sky-100 text-sky-600"
+            label={`Chưa hốt (sống) — ${aliveMembers.length} người`}
+            value={`${aliveMembers.length} × ${fmtK(aliveEach)} = ${fmtK(aliveGross)}`}
+          />
+
+          <CalcRow
+            icon={Sigma}
+            iconCls="bg-emerald-100 text-emerald-600"
+            label="Tổng cộng"
+            value={fmtK(totalGross)}
+            highlight
+            separator
+          />
+
+          {commission > 0 && (
+            <CalcRow
+              icon={Scissors}
+              iconCls="bg-orange-100 text-orange-500"
+              label="Thảo"
+              value={`− ${fmtK(commission)}`}
+            />
           )}
         </div>
 
-        {/* Kết quả */}
-        <div className="rounded-xl bg-teal-50 border border-teal-200 p-4 space-y-1 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl">💵</span>
-            <span className="text-sm font-semibold text-red-600">Số tiền được hốt:</span>
+        {/* ── Net payout ── */}
+        <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 px-5 py-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center shrink-0">
+              <Banknote size={14} className="text-white" />
+            </div>
+            <span className="text-sm font-semibold text-amber-800">Số tiền được hốt</span>
           </div>
-          <p className="text-2xl font-black text-red-600">
-            {net.toLocaleString('vi-VN')}đ
+          <p className="text-3xl font-black text-amber-700 tracking-tight">
+            {net.toLocaleString('vi-VN')}<span className="text-xl ml-1">đ</span>
           </p>
-          <p className="text-sm text-red-500 italic">({numberToWords(net)})</p>
+          <p className="text-xs text-amber-600 mt-1.5 italic leading-relaxed">
+            {numberToWords(net)}
+          </p>
         </div>
 
-        {/* Nút copy */}
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="w-full py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium flex items-center justify-center gap-2"
-        >
-          📋 Sao chép nội dung
-        </button>
       </div>
     </Modal>
   );
