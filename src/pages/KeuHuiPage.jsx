@@ -439,7 +439,7 @@ export default function KeuHuiPage() {
                   <span className="font-medium">{formatVnd(gross)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Hoa hồng / kỳ</span>
+                  <span>Thảo / kỳ</span>
                   <span>{formatVnd(commission)}</span>
                 </div>
                 {g.type === 'dead' && (
@@ -594,7 +594,7 @@ export default function KeuHuiPage() {
                       <p className="font-semibold text-gray-900">{formatVnd(gross)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 mb-0.5">Hoa hồng</p>
+                      <p className="text-gray-500 mb-0.5">Thảo</p>
                       <p className="font-semibold text-red-500">−{formatVnd(commission)}</p>
                     </div>
                     {detailGroup.type === 'live' && (
@@ -647,7 +647,7 @@ export default function KeuHuiPage() {
                         <tr className="text-gray-500">
                           <th className="text-left px-4 py-2 font-medium whitespace-nowrap">Kỳ</th>
                           <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Quỹ kỳ</th>
-                          <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Hoa hồng</th>
+                          <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Thảo</th>
                           <th className="text-right px-4 py-2 font-medium whitespace-nowrap">Tiền nhận</th>
                         </tr>
                       </thead>
@@ -1188,7 +1188,7 @@ export default function KeuHuiPage() {
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-1 text-xs">
                   <p className="font-medium text-amber-700">Tổng kết</p>
                   <div className="flex justify-between"><span>Tổng tiền góp</span><span>{formatVnd(gross)}</span></div>
-                  <div className="flex justify-between text-red-500"><span>Hoa hồng</span><span>−{formatVnd(commission)}</span></div>
+                  <div className="flex justify-between text-red-500"><span>Thảo</span><span>−{formatVnd(commission)}</span></div>
                   {detailGroup.type === 'live' && <div className="flex justify-between text-orange-500"><span>Lãi kêu ({rate}%)</span><span>−{formatVnd(interest)}</span></div>}
                   <div className="flex justify-between font-bold text-gray-900 border-t border-amber-200 pt-1">
                     <span>Tiền nhận</span><span className="text-emerald-600">{formatVnd(net)}</span>

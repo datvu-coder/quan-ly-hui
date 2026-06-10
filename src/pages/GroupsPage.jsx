@@ -376,12 +376,12 @@ export default function GroupsPage() {
               ) : null}
             </label>
             <label className="block space-y-1">
-              <span className="text-xs text-gray-600">Hoa hồng / kỳ hốt (₫)</span>
+              <span className="text-xs text-gray-600">Thảo / kỳ hốt (₫)</span>
               <input
                 type="number"
                 min={0}
                 step={1000}
-                placeholder="0 = không thu hoa hồng"
+                placeholder="0 = không thu thảo"
                 className="w-full rounded-lg bg-white border border-gray-300 px-3 py-2 text-gray-900 text-sm"
                 {...form.register('ownerCommissionAmount')}
               />
@@ -443,7 +443,7 @@ export default function GroupsPage() {
                 <p className="text-amber-700 text-sm font-medium mb-2">{preview.label}</p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                   <div>Tổng tiền góp: {formatVnd(preview.gross)}</div>
-                  <div>Hoa hồng: {formatVnd(preview.commission)}</div>
+                  <div>Thảo: {formatVnd(preview.commission)}</div>
                   {preview.earlyPenalty != null ? (
                     <div>Khấu trừ (ước): {formatVnd(preview.earlyPenalty)}</div>
                   ) : null}

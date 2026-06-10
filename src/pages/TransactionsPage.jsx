@@ -486,7 +486,7 @@ export default function TransactionsPage() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
                 <span>Tổng tiền góp</span>
                 <span className="text-right">{formatVnd(suggestion.gross)}</span>
-                <span>Hoa hồng</span>
+                <span>Thảo</span>
                 <span className="text-right">{formatVnd(suggestion.commission)}</span>
                 {suggestion.type === 'live' ? (
                   <>

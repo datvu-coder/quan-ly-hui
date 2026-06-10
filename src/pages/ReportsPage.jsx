@@ -122,7 +122,7 @@ export default function ReportsPage() {
       icon: TrendingUp,
     },
     {
-      title: 'Hoa hồng (ước)',
+      title: 'Thảo (ước)',
       desc: 'Từ meta giao dịch hốt',
       value: formatVndCompact(stats.commissionEst),
       icon: Calendar,
@@ -206,7 +206,7 @@ export default function ReportsPage() {
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Dây hụi</th>
                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Đã góp</th>
                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Đã hốt</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Hoa hồng (meta)</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Thảo (meta)</th>
                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Số dư</th>
               </tr>
             </thead>
@@ -240,7 +240,7 @@ export default function ReportsPage() {
             <span className="text-emerald-600 font-semibold">{formatVnd(stats.totalWithdraw)}</span>
           </div>
           <div className="flex justify-between gap-4 border-b border-gray-100 pb-2">
-            <span className="text-gray-500">Hoa hồng chủ hụi (ước)</span>
+            <span className="text-gray-500">Thảo chủ hụi (ước)</span>
             <span className="text-purple-600 font-semibold">{formatVnd(stats.commissionEst)}</span>
           </div>
           <div className="flex justify-between gap-4 pt-1">
