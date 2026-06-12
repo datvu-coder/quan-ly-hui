@@ -1281,13 +1281,7 @@ export default function KeuHuiPage() {
 }
 
 // ── Giao hụi receipt modal ─────────────────────────────────────────────────
-function fmtK(n) {
-  if (!n) return '0';
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tỷ`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}M`;
-  if (n >= 1_000) return `${(n / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 0 })}K`;
-  return n.toLocaleString('vi-VN');
-}
+const vnd = (n) => (n ?? 0).toLocaleString('vi-VN') + 'đ';
 
 function GiaoHuiModal({ sessionId, onClose, sessions, groupById, memberById, membersForGroup }) {
   const session = sessions.find((s) => s.id === sessionId);
@@ -1318,88 +1312,89 @@ function GiaoHuiModal({ sessionId, onClose, sessions, groupById, memberById, mem
   const commission   = group.ownerCommissionAmount ?? 0;
   const net          = totalGross - commission;
 
-  const Row = ({ icon: Icon, label, value, muted, deduct, total }) => (
-    <div className={`flex items-center gap-3 py-2.5 ${total ? 'border-t border-indigo-100 mt-1' : ''}`}>
-      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0
-        ${total  ? 'bg-indigo-600 text-white' :
-          deduct ? 'bg-red-50 text-red-400' :
-                   'bg-indigo-50 text-indigo-400'}`}>
-        <Icon size={14} />
-      </div>
-      <span className={`flex-1 text-sm ${muted ? 'text-slate-400' : total ? 'text-slate-800 font-semibold' : 'text-slate-600'}`}>
-        {label}
-      </span>
-      <span className={`text-sm font-semibold tabular-nums
-        ${deduct ? 'text-red-500' : total ? 'text-indigo-700' : 'text-slate-700'}`}>
-        {value}
-      </span>
-    </div>
-  );
-
   return (
     <Modal open={!!sessionId} onClose={onClose} title="Phiếu giao hụi">
       <div className="space-y-3 -mt-1">
 
-        {/* ── Header card ── */}
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 p-5 shadow-md">
+        {/* ── Header ── */}
+        <div className="rounded-2xl bg-indigo-600 px-5 pt-5 pb-5">
           <div className="flex items-start justify-between gap-2 mb-4">
             <div>
-              <p className="text-indigo-200 text-[10px] font-semibold uppercase tracking-[0.15em] mb-1">Phiếu giao hụi</p>
+              <p className="text-indigo-300 text-[10px] uppercase tracking-widest mb-1">Phiếu giao hụi</p>
               <h2 className="text-white text-xl font-bold leading-tight">{group.name}</h2>
             </div>
-            <span className="shrink-0 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+            <span className="shrink-0 bg-indigo-500 text-indigo-100 text-xs font-bold px-3 py-1.5 rounded-full">
               Kỳ {session.periodNumber}
             </span>
           </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: CalendarDays, label: 'Ngày khui', val: formatDate(session.date) },
-              { icon: Users,        label: 'Số phần',   val: `${memberCount} phần`     },
-              { icon: Crown,        label: 'Người hốt', val: winnerName                },
-            ].map(({ icon: Icon, label, val }) => (
-              <div key={label} className="bg-white/10 rounded-xl px-3 py-2.5 text-center">
-                <Icon size={14} className="text-indigo-200 mx-auto mb-1" />
-                <p className="text-[10px] text-indigo-200 mb-0.5">{label}</p>
-                <p className="text-white text-xs font-semibold leading-tight truncate">{val}</p>
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-4 text-sm">
+            <span className="text-indigo-200"><span className="text-indigo-400 mr-1.5">Ngày</span>{formatDate(session.date)}</span>
+            <span className="text-indigo-200"><span className="text-indigo-400 mr-1.5">Phần</span>{memberCount}</span>
+            <span className="text-white font-medium"><span className="text-indigo-300 mr-1.5">Người hốt</span>{winnerName}</span>
           </div>
         </div>
 
-        {/* ── Calculation card ── */}
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm px-4 pt-1 pb-2">
-          {isLive && bidPerPerson > 0 && (
-            <Row icon={Tag}       label="Giá kêu"
-              value={`${bidPerPerson.toLocaleString('vi-VN')}đ / phần`} />
-          )}
-          <Row icon={UserX}
-            label={`Đã hốt (chết) — ${deadMembers.length} người`}
-            value={deadMembers.length > 0 ? `${deadMembers.length} × ${fmtK(deadEach)} = ${fmtK(deadGross)}` : '—'}
-            muted={deadMembers.length === 0}
-          />
-          <Row icon={UserCheck}
-            label={`Chưa hốt (sống) — ${aliveMembers.length} người`}
-            value={`${aliveMembers.length} × ${fmtK(aliveEach)} = ${fmtK(aliveGross)}`}
-          />
-          <Row icon={Sigma}  label="Tổng cộng"  value={fmtK(totalGross)} total />
-          {commission > 0 && (
-            <Row icon={Scissors} label="Thảo"   value={`− ${fmtK(commission)}`} deduct />
-          )}
+        {/* ── Calculation table ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+          {/* column headers */}
+          <div className="flex px-4 py-2 bg-gray-50 border-b border-gray-100">
+            <span className="flex-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Khoản</span>
+            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Số tiền</span>
+          </div>
+
+          <div className="divide-y divide-gray-50 px-4">
+            {isLive && bidPerPerson > 0 && (
+              <div className="flex items-baseline py-3 gap-2">
+                <span className="flex-1 text-sm text-gray-500">Giá kêu / phần</span>
+                <span className="text-sm font-medium text-gray-800 tabular-nums">{vnd(bidPerPerson)}</span>
+              </div>
+            )}
+
+            <div className="py-3">
+              <div className="flex items-baseline gap-2 mb-0.5">
+                <span className="flex-1 text-sm text-gray-500">Đã hốt (chết) — {deadMembers.length} người</span>
+                <span className="text-sm font-medium text-gray-800 tabular-nums">
+                  {deadMembers.length > 0 ? vnd(deadGross) : '—'}
+                </span>
+              </div>
+              {deadMembers.length > 0 && (
+                <p className="text-xs text-gray-400 tabular-nums">
+                  {deadMembers.length} × {vnd(deadEach)}
+                </p>
+              )}
+            </div>
+
+            <div className="py-3">
+              <div className="flex items-baseline gap-2 mb-0.5">
+                <span className="flex-1 text-sm text-gray-500">Chưa hốt (sống) — {aliveMembers.length} người</span>
+                <span className="text-sm font-medium text-gray-800 tabular-nums">{vnd(aliveGross)}</span>
+              </div>
+              <p className="text-xs text-gray-400 tabular-nums">
+                {aliveMembers.length} × {vnd(aliveEach)}
+              </p>
+            </div>
+
+            <div className="flex items-baseline py-3 gap-2">
+              <span className="flex-1 text-sm font-semibold text-gray-700">Tổng cộng</span>
+              <span className="text-sm font-bold text-gray-900 tabular-nums">{vnd(totalGross)}</span>
+            </div>
+
+            {commission > 0 && (
+              <div className="flex items-baseline py-3 gap-2">
+                <span className="flex-1 text-sm text-gray-500">Trừ Thảo</span>
+                <span className="text-sm font-medium text-red-500 tabular-nums">− {vnd(commission)}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Net payout ── */}
-        <div className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-2.5">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-              <Banknote size={15} className="text-white" />
-            </div>
-            <span className="text-sm font-semibold text-white/90 uppercase tracking-wide">Số tiền được hốt</span>
-          </div>
-          <p className="text-3xl font-black text-white tracking-tight leading-none">
-            {net.toLocaleString('vi-VN')}<span className="text-xl font-bold ml-1 opacity-80">đ</span>
+        <div className="rounded-2xl bg-emerald-600 px-5 py-4">
+          <p className="text-emerald-300 text-[10px] uppercase tracking-widest mb-2">Số tiền được hốt</p>
+          <p className="text-3xl font-black text-white tabular-nums leading-none">
+            {net.toLocaleString('vi-VN')}<span className="text-lg font-bold ml-1 text-emerald-300">đ</span>
           </p>
-          <p className="text-xs text-white/70 mt-2 italic leading-relaxed">
+          <p className="text-xs text-emerald-300 mt-2 italic leading-relaxed">
             {numberToWords(net)}
           </p>
         </div>
